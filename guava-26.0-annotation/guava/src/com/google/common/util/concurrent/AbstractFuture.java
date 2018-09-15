@@ -614,6 +614,15 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
               //    chain
               // We can only do this for TrustedFuture, because TrustedFuture.cancel is final and
               // does nothing but delegate to this method.
+                /**
+                 * 如果未来是TrustedFuture，那么我们特别避免调用cancel（）
+                 *
+                 *   这有两个好处
+                 *   1.对于与setFuture一起串起的长期期货链，我们消耗的堆栈更少
+                 *   2.我们避免在取消链的每个级别分配取消对象。
+                 *
+                 * 我们只能为TrustedFuture执行此操作，因为TrustedFuture.cancel是最终的，除了委托此方法之外什么都不做。
+                 */
               AbstractFuture<?> trusted = (AbstractFuture<?>) futureToPropagateTo;
               localValue = trusted.value;
               if (localValue == null | localValue instanceof SetFuture) {
