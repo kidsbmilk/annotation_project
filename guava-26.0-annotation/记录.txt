@@ -1,3 +1,15 @@
 Google Guava笔记：http://arcticfox9902.iteye.com/category/160901
 浅析Google Guava中concurrent下的Monitor和Future特性：https://blog.csdn.net/a837199685/article/details/50610141
 Google Guava Cache 全解析：https://www.imooc.com/article/34924
+
+guava concurrent包的一个目的是要实现流式（链式）异步调用，是如何实现的?
+
+CheckedFuture里有这要一段注释：
+ * @deprecated {@link CheckedFuture} cannot properly support the chained operations that are the
+ *     primary goal of {@link ListenableFuture}. {@code CheckedFuture} also encourages users to
+ *     rethrow exceptions from one thread in another thread, producing misleading stack traces.
+ *     Additionally, it has a surprising policy about which exceptions to map and which to leave
+ *     untouched. Guava users who want a {@code CheckedFuture} can fork the classes for their own
+ *     use, possibly specializing them to the particular exception type they use. We recommend that
+ *     most people use {@code ListenableFuture} and perform any exception wrapping themselves. This
+ *     class is scheduled for removal from Guava in October 2018.
