@@ -103,6 +103,18 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   //    it would just add an edge such that if done() observed non-null, then it would also
   //    definitely observe all earlier writes, but we still have no guarantee that done() would see
   //    the inital write (just stronger guarantees if it does).
+
+  // 其实这个问题跟早期不加volatile的双重检查锁定中存在的并发问题非常像，本质都是在调用对象时，对象里的成员变量可能还未完成初始化。
+  // 在这里其实有个简单的解决此处问题的方法，就是将成员变量设置为final，这样在初始化时，会先设置其值（定义时赋值或者构造函数中先赋值），
+  // 但是，由于最开始的两个原因的存在（比如要取消从返回的Future传播到输入Future的动作
+  // 以及Future完成后，不需要再保留输入Future),所以设置为final是不合理的。
+  // 将成员变量设置为volatile也不能从根本上解决些问题，见上面的2。
+  // 下面的链接给出了妥协的做法，guava封闭的并不是线程安全的，是存在潜在bug的。下面也有一段来解释了目前的做法是合理的、正确的，只需要在反向传播时判断一下成员变量是否为空就行，
+  // 即使为空，不传播也是合理的。
+  // 还是期待未来JMM从根本上解决些问题。
+  //
+  // 认识到这个问题，并没有颠覆我对java并发编程的理解，其实这个问题是普遍存在的，只是我之前没有充分认识罢了，就像双重检查锁定中的问题早已存在一样，我只是没有举一反三、一通百通罢了。
+  // 现在认识全面了也不算晚。
   //
   // See: http://cs.oswego.edu/pipermail/concurrency-interest/2015-January/013800.html
   // For a (long) discussion about this specific issue and the general futility of life.
@@ -117,7 +129,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   // safely publish these objects and we won't need this whole discussion.
   // TODO(user,lukes): consider adding volatile to all these fields since in current known JVMs
   // that should resolve the issue. This comes at the cost of adding more write barriers to the
-  // implementations.
+  // implementations.implementations
 
   private Futures() {}
 
