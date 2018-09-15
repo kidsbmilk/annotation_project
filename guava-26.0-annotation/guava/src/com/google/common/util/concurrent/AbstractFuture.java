@@ -375,6 +375,20 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   //   is). If we wanted to be strict about it, we could store the unpark() time in the Waiter node
   //   and we could use that to make a decision about whether or not we timed out prior to being
   //   unparked.
+  /**
+   * 获取和定时获取
+   *
+   *    *响应中断
+   *    *如果您不打算使用park操作，请不要创建Waiter节点，这有助于减少waiters队列上的争用。
+   *    *将在#value变为非null /非SetFuture时定义Future完成。
+   *    *当waiters字段包含TOMBSTONE Timed Get时，可以观察到Future完成情况。
+   *    需要考虑一些设计约束
+   *    *我们希望对小超时做出响应，unpark（）具有非平凡的延迟开销（我在64位Linux系统上观察到12个微处理器唤醒停放的线程）。因此，如果超时很小，我们不应该park（）。这需要与cpu的自旋开销进行折衷，因此我们使用SPIN_THRESHOLD_NANOS，这是AbstractQueuedSynchronizer用于类似目的的。
+   *    *我们想要在0的超时时间内合理地行事
+   *    *我们对完成的响应速度比超时更快。这是因为parkNanos依赖于系统调度，因此我们可能会错过我们的截止日期，或者unpark（）可能会被延迟，因此即使我们没有超时，
+   * 也会因为unpark()被延迟而超时。为了比较，FutureTask表示任务完成，而AQS是非确定性的（取决于waiter在队列中的位置）。如果我们想严格要求它，
+   * 我们可以将unpark（）时间存储在Waiter节点中，我们可以使用它来决定我们是否在取消停放之前超时。
+   */
 
   /**
    * {@inheritDoc}
