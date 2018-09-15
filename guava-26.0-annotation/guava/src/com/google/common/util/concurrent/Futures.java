@@ -587,7 +587,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    * @since 10.0
    */
   @Beta
-  @SafeVarargs
+  @SafeVarargs // SAFEVARARGS的用法：http://softlab.sdut.edu.cn/blog/subaochen/2017/04/safevarargs%E7%9A%84%E7%94%A8%E6%B3%95/
   public static <V> ListenableFuture<List<V>> allAsList(ListenableFuture<? extends V>... futures) {
     return new ListFuture<V>(ImmutableList.copyOf(futures), true);
   }
