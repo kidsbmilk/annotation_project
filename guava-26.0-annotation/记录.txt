@@ -13,3 +13,27 @@ CheckedFuture里有这要一段注释：
  *     use, possibly specializing them to the particular exception type they use. We recommend that
  *     most people use {@code ListenableFuture} and perform any exception wrapping themselves. This
  *     class is scheduled for removal from Guava in October 2018.
+
+
+Linux查找含有某字符串的所有文件：https://www.cnblogs.com/wangkongming/p/4476933.html
+
+使用grep可以搜出某包下包含某字符串的文件：
+$ grep -l "@since 1.0" *
+AbstractCheckedFuture.java
+AbstractExecutionThreadService.java
+AbstractFuture.java
+AbstractIdleService.java
+AbstractService.java
+Callables.java
+CheckedFuture.java
+ExecutionList.java
+FakeTimeLimiter.java
+ForwardingFuture.java
+Futures.java
+ListenableFuture.java
+ListenableFutureTask.java
+SimpleTimeLimiter.java
+TimeLimiter.java
+UncheckedTimeoutException.java
+
+以上显示了concurrent包中，自1.0版本就存在的文件。
