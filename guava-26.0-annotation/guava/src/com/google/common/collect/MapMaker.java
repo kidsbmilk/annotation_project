@@ -85,6 +85,10 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
  * @author Kevin Bourrillion
  * @since 2.0
  */
+
+/**
+ * Google Collections(Guava)中强大的Concurrent MapMaker：https://www.jianshu.com/p/baf84d599070
+ */
 @GwtCompatible(emulated = true)
 public final class MapMaker {
   private static final int DEFAULT_INITIAL_CAPACITY = 16;
