@@ -32,6 +32,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * @author Sven Mawson
  * @since 9.0 (in 1.0 as {@code ValueFuture})
+ *
+ * 看上面的注释，SettableFuture与ListeningExecutorService是两种写程序的方式，如果使用ListeningExecutorService（见其类注释）无法实现自己的功能的话，可以自己开多个线程，
+ * 然后线程之间使用SettableFuture来处理结果。
  */
 @GwtCompatible
 public final class SettableFuture<V> extends AbstractFuture.TrustedFuture<V> {
