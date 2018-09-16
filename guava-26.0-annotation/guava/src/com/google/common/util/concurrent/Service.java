@@ -26,6 +26,11 @@ import java.util.concurrent.TimeoutException;
  * #stopAsync()} lifecycle methods to transition between states. Example services include
  * webservers, RPC servers and timers.
  *
+ * 这个类引出的一个服务模块是一个单独的模块，用于创建一些服务程序，见AbstractScheduledService里有一个爬虫的例子。
+ * 使用这个Service的好处是，这里帮你处理好服务的各种状态转换了，自己只需要实现某些状态接口来处理自己的实际动作就可以了。
+ *
+ * 这个Service模块，本身也可以使用ListenableFuture来处理服务中多线程间的数据传递问题，见其实现类的具体实现。
+ *
  * <p>The normal lifecycle of a service is:
  *
  * <ul>
