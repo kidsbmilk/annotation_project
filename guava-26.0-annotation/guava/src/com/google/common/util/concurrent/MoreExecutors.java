@@ -389,6 +389,10 @@ public final class MoreExecutors {
     return DirectExecutor.INSTANCE;
   }
 
+  /**
+   * 注意：java中的Executor是异步计算框架（在引入CompletableFuture后变成异步编程框架），而Thread才是另起线程去执行程序的，不要把Executor与Thread给弄混了。
+   * 见上面的注释： Returns an {@link Executor} that runs each task in the thread that invokes {@link Executor#execute execute}, as in {@link CallerRunsPolicy}.
+   */
   /** See {@link #directExecutor} for behavioral notes. */
   private enum DirectExecutor implements Executor {
     INSTANCE;

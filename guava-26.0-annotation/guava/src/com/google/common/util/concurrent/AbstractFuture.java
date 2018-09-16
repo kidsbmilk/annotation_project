@@ -58,6 +58,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link #afterDone()}, which will be invoked automatically when the future completes. Subclasses
  * should rarely override other methods.
  *
+ * {@link ListenableFuture}的抽象实现，仅供高级用户使用。创建{@code ListenableFuture}的更常见方法包括实例化{@link SettableFuture}，
+ * 将任务提交到{@link ListeningExecutorService}，并从现有的任务中派生{@code Future}，
+ * 通常使用{@link等方法链接Futures＃transform（ListenableFuture，com.google.common.base.Function，java.util.concurrent.Executor）Futures.transform}
+ * 和{@link Futures＃catch（ListenableFuture，Class，com.google.common.base.Function ，java.util.concurrent.Executor）Futures.catching}。
+ *
+ * <p>此类实现{@code ListenableFuture}中的所有方法。子类应该提供一种通过受保护的方法{@link #set（Object）}，
+ * {@ link #setFuture（ListenableFuture）}和{@link #setException（Throwable）}来设置计算结果的方法。子类也可以覆盖{@link #afterDone（）}，
+ * 这将在将来完成时自动调用。子类应该很少覆盖其他方法。
+ *
  * @author Sven Mawson
  * @author Luke Sandberg
  * @since 1.0
