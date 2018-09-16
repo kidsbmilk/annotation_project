@@ -504,6 +504,12 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    * @param executor Executor to run the function in.
    * @return A future that holds result of the transformation.
    * @since 9.0 (in 2.0 as {@code compose})
+   *
+   * 在以前的版本中，有chain方法（形式链式调用），目前已经用transform替代chain方法了（最上面的类注释中体现了这一点）。
+   *
+   * 注意一个误区：并不是把多个Future或者ListenableFuture形式链式调用，而是将ListenableFuture与Function的结合对形式链式调用。
+   * 在此方法中，transform将ListenableFuture与Future结合起来（Function用于转换ListenableFuture的返回结果）返回一个ListenableFuture，
+   * 而此返回的ListenableFuture也可以有新的Function，这样就将结合对形式链式调用了。
    */
   public static <I, O> ListenableFuture<O> transform(
       ListenableFuture<I> input, Function<? super I, ? extends O> function, Executor executor) {
