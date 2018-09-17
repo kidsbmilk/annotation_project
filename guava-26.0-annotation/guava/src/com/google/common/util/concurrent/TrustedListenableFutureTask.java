@@ -28,6 +28,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * <p>This should be used in preference to {@link ListenableFutureTask} when possible for
  * performance reasons.
+ *
+ * 这个类要实现RunnableFuture，见AbstractListeningExecutorService以及AbstractExecutorService中的注释。
  */
 @GwtCompatible
 class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
