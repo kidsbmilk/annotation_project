@@ -32,6 +32,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * @author Chris Povirk
  * @since 14.0
+ *
+ * 见AbstractExecutorService中的类注释：
+ * 提供{@link ExecutorService}执行方法的默认实现。 此类使用{@code newTaskFor}返回的{@link RunnableFuture}实现{@code submit}，{@ code invokeAny}和{@code invokeAll}方法，
+ * 默认为此中提供的{@link FutureTask}类 包。 例如，{@code submit（Runnable）}的实现会创建一个执行并返回的关联{@code RunnableFuture}。 子类可以覆盖{@code newTaskFor}方法，
+ * 以返回{@code FutureTask}以外的{@code RunnableFuture}实现。
+ *
+ * 这个类最主要的是继承了AbstractExecutorService，然后重写了newTaskFor方法，返回自定义的TrustedListenableFutureTask。
  */
 @Beta
 @CanIgnoreReturnValue
@@ -51,6 +58,10 @@ public abstract class AbstractListeningExecutorService extends AbstractExecutorS
     return TrustedListenableFutureTask.create(callable);
   }
 
+    /**
+     * 这里重写了三个submit，其实只是改变了下返回类型，实际操作还是委托给父类实现了。
+     * 这里只所以可以改变返回类型，是因为重写了newTaskFor方法，返回的真实类型是ListenableFuture接口的实现类。
+     */
   @Override
   public ListenableFuture<?> submit(Runnable task) {
     return (ListenableFuture<?>) super.submit(task);
