@@ -38,6 +38,8 @@ UncheckedTimeoutException.java
 
 以上显示了concurrent包中，自1.0版本就存在的文件。
 
+guava concurrent设置思想很超前，想实现的功能非常酷炫，能极大地的提高开发效率。（也有可能是我对jdk concurrent不够了解。）
+
 问题：
 1、MoreExecutors中我知道后续的动作是如何通过ListenableFuture.addListener添加到AbstractFuture的listtners上的，但是不明白这些listener是何时以怎么样的方式被调用的？
 在使用addListener时，如果任务已经完成，则addListener里的新任务会立刻执行，但是，如果任务还没有完成，则addListener会放入listeners里等待任务完成，而任务完成后，listeners里的东西是
