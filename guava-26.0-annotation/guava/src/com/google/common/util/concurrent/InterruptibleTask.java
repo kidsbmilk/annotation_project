@@ -26,6 +26,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 // Since this class only needs CAS on one field, we can avoid this bug by extending AtomicReference
 // instead of using an AtomicReferenceFieldUpdater. This reference stores Thread instances
 // and DONE/INTERRUPTED - they have a common ancestor of Runnable.
+/**
+ * 一些Android 5.0.x三星设备在JDK反射API中存在错误，导致getDeclaredField在字段肯定存在时抛出NoSuchFieldException。
+ * 由于此类仅在一个字段上需要CAS，因此我们可以通过扩展AtomicReference而不是使用AtomicReferenceFieldUpdater来避免此错误。
+ * 此引用存储Thread实例和DONE / INTERRUPTED - 它们具有Runnable的共同祖先。
+ *
+ * 不光是在这里做了防止上面出错的措施，在AbstractFuture里做判断了，不过那里字段太多，使用了synchronized来解决问题。
+ * 那里只所以不使用AtomicReferenceFieldUpdater，是因为那里的AtomicReferenceFieldUpdater是基于反射来得到变量的，而根本问题就出在反射有问题上。所以使用了synchronized。
+ *
+ * 注意：这个类继承自AtomicReference<Runnable>，所以在下面可以使用：compareAndSet(currentThread, DONE)，因为Thread和DONE都实现了Runnable接口。
+ *
+ * 注意：上面说“此类仅有一个字段”，是指这个类是用来封装是否可中断的，来描述任务的中断状态的，正常情况下只需要一个字段就行，
+ * 但是由于上面的原因，所以这里扩展了AtomicReference，用两个字段来描述是否中断状态的。
+ */
 abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements Runnable {
   private static final class DoNothingRunnable implements Runnable {
     @Override
@@ -104,6 +117,7 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
     // Since the Thread is replaced by DONE before run() invokes listeners or returns, if we succeed
     // in this CAS, there's no risk of interrupting the wrong thread or interrupting a thread that
     // isn't currently executing this task.
+      // 由于在run（）调用侦听器或返回之前，Thread被DONE替换，如果我们在此CAS中成功，则不存在中断错误线程或中断当前未执行此任务的线程的风险。
     Runnable currentRunner = get();
     if (currentRunner instanceof Thread && compareAndSet(currentRunner, INTERRUPTING)) {
       ((Thread) currentRunner).interrupt();

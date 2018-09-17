@@ -118,6 +118,7 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
     return super.pendingToString();
   }
 
+  // 这个私有内部类继承了InterruptibleTask，要其实其中的三个抽象方法。
   @WeakOuter
   private final class TrustedFutureInterruptibleTask extends InterruptibleTask<V> {
     private final Callable<V> callable;

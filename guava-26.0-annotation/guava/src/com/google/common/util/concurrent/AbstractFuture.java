@@ -155,6 +155,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
         // getDeclaredField to throw a NoSuchFieldException when the field is definitely there.
         // For these users fallback to a suboptimal implementation, based on synchronized. This will
         // be a definite performance hit to those users.
+        // 一些Android 5.0.x三星设备在JDK反射API中存在错误，导致getDeclaredField在字段肯定存在时抛出NoSuchFieldException。 对于这些用户，基于synchronized，回退到次优实现。 这将对这些用户产生明显的性能影响。
+        // 见InterruptibleTask里的注释（那里用AtomicReference来实现了）。
         thrownAtomicReferenceFieldUpdaterFailure = atomicReferenceFieldUpdaterFailure;
         helper = new SynchronizedHelper();
       }
