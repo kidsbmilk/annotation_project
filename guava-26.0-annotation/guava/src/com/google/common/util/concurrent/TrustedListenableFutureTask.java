@@ -30,6 +30,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * performance reasons.
  *
  * 这个类要实现RunnableFuture，见AbstractListeningExecutorService以及AbstractExecutorService中的注释。
+ *
+ * 阅读源码要注意类所实现的接口以及继承的抽象类，一般继承的抽象类里会对子类必须实现的方法做注释、说明。
+ * 在这个类中，继承自AbstractFuture，在AbstractFuture的类注释中已经明确说明了：Subclasses may also override
+ * {@link #afterDone()}, which will be invoked automatically when the future completes. Subclasses
+ * should rarely override other methods.（这一点也解决了我的问题中的第一条。）
+ *
+ * 这个类也继承了RunnableFuture，所以要实现run方法。
+ *
+ * 面向对象中的面向接口编程，我对其的理解又更进了一步。
  */
 @GwtCompatible
 class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>

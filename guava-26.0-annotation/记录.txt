@@ -42,3 +42,7 @@ UncheckedTimeoutException.java
 1、MoreExecutors中我知道后续的动作是如何通过ListenableFuture.addListener添加到AbstractFuture的listtners上的，但是不明白这些listener是何时以怎么样的方式被调用的？
 在使用addListener时，如果任务已经完成，则addListener里的新任务会立刻执行，但是，如果任务还没有完成，则addListener会放入listeners里等待任务完成，而任务完成后，listeners里的东西是
 如何如何被调用的？难道有守护线程在处理？
+
+见TrustedListenableFutureTask中的注释。
+
+2、
