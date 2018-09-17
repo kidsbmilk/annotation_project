@@ -503,6 +503,7 @@ public final class MoreExecutors {
         : new ScheduledListeningDecorator(delegate);
   }
 
+  // 注意这个类名，这个类是一个装饰类，
   @GwtIncompatible // TODO
   private static class ListeningDecorator extends AbstractListeningExecutorService {
     private final ExecutorService delegate;

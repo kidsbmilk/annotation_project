@@ -34,22 +34,24 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * 阅读源码要注意类所实现的接口以及继承的抽象类，一般继承的抽象类里会对子类必须实现的方法做注释、说明。
  * 在这个类中，继承自AbstractFuture，在AbstractFuture的类注释中已经明确说明了：Subclasses may also override
  * {@link #afterDone()}, which will be invoked automatically when the future completes. Subclasses
- * should rarely override other methods.（这一点也解决了我的问题中的第一条。）
+ * should rarely override other methods.（这一点也解决了我的问题中的第一个。）
  *
  * 这个类也继承了RunnableFuture，所以要实现run方法。
  *
  * 面向对象中的面向接口编程，我对其的理解又更进了一步。
+ *
+ * 明白类间的继承与实现关系后，再去自己造轮子就知道流程了，就能更好地理解实现细节了。
  */
 @GwtCompatible
 class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
     implements RunnableFuture<V> {
 
-  static <V> TrustedListenableFutureTask<V> create(AsyncCallable<V> callable) {
-    return new TrustedListenableFutureTask<V>(callable);
+  static <V> TrustedListenableFutureTask<V> create(AsyncCallable<V> callable) { // 注意这是静态方法
+    return new TrustedListenableFutureTask<V>(callable); // 这个是调用的非静态方法，最终转到带有是否中断状态的task上。
   }
 
-  static <V> TrustedListenableFutureTask<V> create(Callable<V> callable) {
-    return new TrustedListenableFutureTask<V>(callable);
+  static <V> TrustedListenableFutureTask<V> create(Callable<V> callable) { // 注意这是静态方法
+    return new TrustedListenableFutureTask<V>(callable); // 这个是调用的非静态方法，最终转到带有是否中断状态的task上。
   }
 
   /**
@@ -75,18 +77,18 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
   private volatile InterruptibleTask<?> task;
 
   TrustedListenableFutureTask(Callable<V> callable) {
-    this.task = new TrustedFutureInterruptibleTask(callable);
+    this.task = new TrustedFutureInterruptibleTask(callable); // 这个是组合了可中断的特点。
   }
 
   TrustedListenableFutureTask(AsyncCallable<V> callable) {
-    this.task = new TrustedFutureInterruptibleAsyncTask(callable);
+    this.task = new TrustedFutureInterruptibleAsyncTask(callable); // 这个是组合了可中断的特点。
   }
 
   @Override
   public void run() {
     InterruptibleTask localTask = task;
     if (localTask != null) {
-      localTask.run();
+      localTask.run(); // 这个里会调用isDone，也是InterruptibleTask需要实现的方法。
     }
     /*
      * In the Async case, we may have called setFuture(pendingFuture), in which case afterDone()
@@ -118,7 +120,8 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
     return super.pendingToString();
   }
 
-  // 这个私有内部类继承了InterruptibleTask，要其实其中的三个抽象方法。
+  // 这个私有内部类继承了InterruptibleTask，要实现其中的三个抽象方法。
+    // InterruptibleTask相当于一个组件、成员变量，就是是否中断了，这个TrustedFutureInterruptibleTask结合了是否中断信息以及TrustedListenableFutureTask。
   @WeakOuter
   private final class TrustedFutureInterruptibleTask extends InterruptibleTask<V> {
     private final Callable<V> callable;
@@ -129,7 +132,8 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
 
     @Override
     final boolean isDone() {
-      return TrustedListenableFutureTask.this.isDone();
+      return TrustedListenableFutureTask.this.isDone(); // 注意：这里用到了TrustedListenableFutureTask.this，此类是TrustedListenableFutureTask的内部类，它要调用TrustedListenableFutureTask的isDone方法，所以这样写了，
+        // 先取出当前的实例，然后调用其isDone方法。
     }
 
     @Override

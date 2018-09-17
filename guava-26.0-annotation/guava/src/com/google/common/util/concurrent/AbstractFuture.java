@@ -56,7 +56,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * to set the result of the computation through the protected methods {@link #set(Object)}, {@link
  * #setFuture(ListenableFuture)} and {@link #setException(Throwable)}. Subclasses may also override
  * {@link #afterDone()}, which will be invoked automatically when the future completes. Subclasses
- * should rarely override other methods.
+ * should rarely override other methods.（这一点也解决了我的问题中的第一个。）
  *
  * {@link ListenableFuture}的抽象实现，仅供高级用户使用。创建{@code ListenableFuture}的更常见方法包括实例化{@link SettableFuture}，
  * 将任务提交到{@link ListeningExecutorService}，并从现有的任务中派生{@code Future}，
