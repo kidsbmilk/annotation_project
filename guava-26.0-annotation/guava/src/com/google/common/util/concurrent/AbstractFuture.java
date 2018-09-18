@@ -177,12 +177,18 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     }
   }
 
+  /**
+   * 什么是CAS机制？：https://blog.csdn.net/qq_32998153/article/details/79529704
+   * Java原子类中CAS的底层实现：http://www.cnblogs.com/noKing/p/9094983.html
+   * Treiber Stack介绍：https://www.cnblogs.com/micrari/p/7719408.html
+   * FutureTask源码解读：http://www.cnblogs.com/micrari/p/7374513.html
+   */
   /** Waiter links form a Treiber stack, in the {@link #waiters} field. */
   private static final class Waiter {
     static final Waiter TOMBSTONE = new Waiter(false /* ignored param */);
 
-    volatile @Nullable Thread thread;
-    volatile @Nullable Waiter next;
+    volatile @Nullable Thread thread; // 注意：是volatile类型。
+    volatile @Nullable Waiter next; // 注意：是volatile类型。
 
     /**
      * Constructor for the TOMBSTONE, avoids use of ATOMIC_HELPER in case this class is loaded
@@ -201,14 +207,14 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       ATOMIC_HELPER.putNext(this, next);
     }
 
-    void unpark() {
+    void unpark() { // releaseWaiters方法会调用这里。
       // This is racy with removeWaiter. The consequence of the race is that we may spuriously call
       // unpark even though the thread has already removed itself from the list. But even if we did
       // use a CAS, that race would still exist (it would just be ever so slightly smaller).
       Thread w = thread;
       if (w != null) {
         thread = null;
-        LockSupport.unpark(w);
+        LockSupport.unpark(w); // get方法里有LockSupport.park操作。
       }
     }
   }
@@ -524,7 +530,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
         if (ATOMIC_HELPER.casWaiters(this, oldHead, node)) {
           // we are on the stack, now wait for completion.
           while (true) {
-            LockSupport.park(this);
+            LockSupport.park(this); // releaseWaiters里会最终调用LockSupport.unpark
             // Check interruption first, if we woke up due to interruption we need to honor that.
             if (Thread.interrupted()) {
               removeWaiter(node);
@@ -952,7 +958,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       head = waiters;
     } while (!ATOMIC_HELPER.casWaiters(this, head, Waiter.TOMBSTONE));
     for (Waiter currentWaiter = head; currentWaiter != null; currentWaiter = currentWaiter.next) {
-      currentWaiter.unpark();
+      currentWaiter.unpark(); // get方法里有LockSupport.park操作。
     }
   }
 
