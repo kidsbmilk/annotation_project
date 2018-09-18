@@ -632,7 +632,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
               // We can only do this for TrustedFuture, because TrustedFuture.cancel is final and
               // does nothing but delegate to this method.
                 /**
-                 * 如果未来是TrustedFuture，那么我们特别避免调用cancel（）
+                 * 如果Future是TrustedFuture，那么我们特别避免调用cancel（）
                  *
                  *   这有两个好处
                  *   1.对于与setFuture一起串起的长期期货链，我们消耗的堆栈更少
