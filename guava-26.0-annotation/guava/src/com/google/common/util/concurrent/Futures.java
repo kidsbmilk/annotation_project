@@ -49,9 +49,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Static utility methods pertaining to the {@link Future} interface.
  *
+ * 与{@link Future}接口有关的静态实用程序方法。
+ *
  * <p>Many of these methods use the {@link ListenableFuture} API; consult the Guava User Guide
  * article on <a href="https://github.com/google/guava/wiki/ListenableFutureExplained">{@code
  * ListenableFuture}</a>.
+ *
+ * 注意这里面的链接！！！
  *
  * <p>The main purpose of {@code ListenableFuture} is to help you chain together a graph of
  * asynchronous operations. You can chain them together manually with calls to methods like {@link
@@ -59,11 +63,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * find it easier to use a framework. Frameworks automate the process, often adding features like
  * monitoring, debugging, and cancellation. Examples of frameworks include:
  *
+ * {@code ListenableFuture}的主要目的是帮助您将异步操作图链接在一起。
+ * 您可以通过调用{@link Futures＃transform（ListenableFuture，Function，Executor）Futures.transform}等方法手动将它们链接在一起，
+ * 但您经常会发现使用框架更容易。 框架自动化流程，通常添加监控，调试和取消等功能。
+ *
  * <ul>
  *   <li><a href="http://google.github.io/dagger/producers.html">Dagger Producers</a>
  * </ul>
  *
  * <p>If you do chain your operations manually, you may want to use {@link FluentFuture}.
+ *
+ * 如果您手动链接操作，可能需要使用{@link FluentFuture}。
  *
  * @author Kevin Bourrillion
  * @author Nishant Thakkar

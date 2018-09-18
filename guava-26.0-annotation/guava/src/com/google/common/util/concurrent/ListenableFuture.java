@@ -104,36 +104,64 @@ public interface ListenableFuture<V> extends Future<V> {
    * The listener will run when the {@code Future}'s computation is {@linkplain Future#isDone()
    * complete} or, if the computation is already complete, immediately.
    *
+   * 在给定的executor上注册一个监听器，这个监听器将会以{@linkplain Executor #execute（Runnable）run}的方式在executor上运行。
+   * 当{@code Future}的计算是{@linkplain Future＃isDone（）complete}时，监听器将运行，或者如果计算已经完成，则立即运行。
+   *
+   * 注意：Executor与Thread是不同的，Executor是jdk提供的异步计算工具，内部具体实现已经封闭了Thread，这个Executor内部可以是线程池，或者单独的一个线程。
+   * Java多线程学习（八）线程池与Executor 框架：https://www.cnblogs.com/snailclimb/p/ThreadPool.html
+   *
    * <p>There is no guaranteed ordering of execution of listeners, but any listener added through
    * this method is guaranteed to be called once the computation is complete.
+   *
+   * 没有保证执行侦听器的顺序，但是一旦计算完成，就保证通过此方法添加的任何侦听器都被调用。
    *
    * <p>Exceptions thrown by a listener will be propagated up to the executor. Any exception thrown
    * during {@code Executor.execute} (e.g., a {@code RejectedExecutionException} or an exception
    * thrown by {@linkplain MoreExecutors#directExecutor direct execution}) will be caught and
    * logged.
    *
+   * 侦听器抛出的异常将传播到executor。 在{@code Executor.execute}期间抛出的任何异常（例如，{@code RejectedExecutionException}
+   * 或{@linkplain MoreExecutors＃directExecutor direct execution}抛出的异常）都将被捕获并记录。
+   *
    * <p>Note: For fast, lightweight listeners that would be safe to execute in any thread, consider
    * {@link MoreExecutors#directExecutor}. Otherwise, avoid it. Heavyweight {@code directExecutor}
    * listeners can cause problems, and these problems can be difficult to reproduce because they
    * depend on timing. For example:
    *
+   * 注意：对于在任何线程中都可以安全执行的快速，轻量级的侦听器，请考虑{@link MoreExecutors＃directExecutor}。
+   * 否则，避免它。 重量级的{@code directExecutor}侦听器可能会导致问题，并且这些问题很难重现，因为它们依赖于时序。 例如：
+   *
    * <ul>
    *   <li>The listener may be executed by the caller of {@code addListener}. That caller may be a
    *       UI thread or other latency-sensitive thread. This can harm UI responsiveness.
+   *
+   *       监听器可以由{@code addListener}的调用者执行。 该调用者可以是UI线程或其他对延迟敏感的线程。 这可能会损害UI响应能力。
+   *
    *   <li>The listener may be executed by the thread that completes this {@code Future}. That
    *       thread may be an internal system thread such as an RPC network thread. Blocking that
    *       thread may stall progress of the whole system. It may even cause a deadlock.
+   *
+   *       侦听器可以由完成此{@code Future}的线程执行。 该线程可以是内部系统线程，例如RPC网络线程。 阻止该线程可能会停止整个系统的进度。 它甚至可能导致死锁。
+   *
    *   <li>The listener may delay other listeners, even listeners that are not themselves {@code
    *       directExecutor} listeners.
+   *
+   *       监听器可能会延迟其他监听器，甚至是那些本身不是在{@code directExecutor}上执行的监听器。
+   *
    * </ul>
    *
    * <p>This is the most general listener interface. For common operations performed using
    * listeners, see {@link Futures}. For a simplified but general listener interface, see {@link
    * Futures#addCallback addCallback()}.
    *
+   * 这是最常用的侦听器接口。 有关使用侦听器执行的常见操作，请参阅{@link Futures}。 有关简化但通用的侦听器接口，请参阅{@link Futures＃addCallback addCallback（）}。
+   * 其实Futures是关于ListenableFuture的工具类。
+   *
    * <p>Memory consistency effects: Actions in a thread prior to adding a listener <a
    * href="https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html#jls-17.4.5">
    * <i>happen-before</i></a> its execution begins, perhaps in another thread.
+   *
+   * 这个链接非常重要！！！    TODO.
    *
    * @param listener the listener to run when the computation is complete
    * @param executor the executor to run the listener in
