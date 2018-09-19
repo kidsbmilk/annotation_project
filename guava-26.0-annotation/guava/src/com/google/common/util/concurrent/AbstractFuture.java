@@ -193,6 +193,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     /**
      * Constructor for the TOMBSTONE, avoids use of ATOMIC_HELPER in case this class is loaded
      * before the ATOMIC_HELPER. Apparently this is possible on some android platforms.
+     *
+     * TOMBSTONE的构造函数，在ATOMIC_HELPER之前加载此类时，避免使用ATOMIC_HELPER。 显然这在某些Android平台上是可行的。
+     * 注意：下面有无参构造函数用到ATOMIC_HELPER，所以要避免出来创建TOMBSTONE时，ATOMIC_HELPER还未初始化，所以这里增加了个无用的构造函数。
      */
     Waiter(boolean unused) {}
 
