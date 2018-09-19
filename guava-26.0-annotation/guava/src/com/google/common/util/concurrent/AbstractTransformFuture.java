@@ -80,7 +80,7 @@ abstract class AbstractTransformFuture<I, O, F, T> extends AbstractFuture.Truste
 
     I sourceResult;
     try {
-      sourceResult = getDone(localInputFuture);
+      sourceResult = getDone(localInputFuture); // 见最上面的导入语句，这个getDone导入自Futures工具类。
     } catch (CancellationException e) {
       // Cancel this future and return.
       // At this point, inputFuture is cancelled and outputFuture doesn't exist, so the value of

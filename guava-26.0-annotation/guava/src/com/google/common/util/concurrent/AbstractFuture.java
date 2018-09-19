@@ -64,16 +64,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * 和{@link Futures＃catch（ListenableFuture，Class，com.google.common.base.Function ，java.util.concurrent.Executor）Futures.catching}。
  *
  * <p>此类实现{@code ListenableFuture}中的所有方法。子类应该提供一种通过受保护的方法{@link #set（Object）}，
- * {@ link #setFuture（ListenableFuture）}和{@link #setException（Throwable）}来设置计算结果的方法。子类也可以覆盖{@link #afterDone（）}，
- * 这将在将来完成时自动调用。子类应该很少覆盖其他方法。
+ * {@ link #setFuture（ListenableFuture）}和{@link #setException（Throwable）}来设置计算结果的方法（注意这句话，是提供一种基于set以及setFuture的方法，而不是重写这两个方法）。
+ * 子类也可以覆盖{@link #afterDone（）}，这将在将来完成时自动调用。子类应该很少覆盖其他方法。
  *
  * @author Sven Mawson
  * @author Luke Sandberg
  * @since 1.0
  */
-@SuppressWarnings("ShortCircuitBoolean") // we use non-short circuiting comparisons intentionally
+@SuppressWarnings("ShortCircuitBoolean") // we use non-short circuiting comparisons intentionally 我们故意使用非短路比较
 @GwtCompatible(emulated = true)
-@ReflectionSupport(value = ReflectionSupport.Level.FULL)
+@ReflectionSupport(value = ReflectionSupport.Level.FULL) // 这个是com.google.j2objc.annotations中的。
 public abstract class AbstractFuture<V> extends FluentFuture<V> {
   // NOTE: Whenever both tests are cheap and functional, it's faster to use &, | instead of &&, ||
 
@@ -84,6 +84,15 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   /**
    * A less abstract subclass of AbstractFuture. This can be used to optimize setFuture by ensuring
    * that {@link #get} calls exactly the implementation of {@link AbstractFuture#get}.
+   * AbstractFuture的一个不太抽象的子类。 这可以通过确保{@link #get}完全调用{@link AbstractFuture＃get}的实现来优化setFuture。
+   *
+   * 不太明白这里的注释是什么意思，跟setFuture有什么关系？ 是这样的，get方法里涉及到SetFuture这个可能的结果对象（原因要从setFuture方法说起，见那里的注释），
+   * 这个TrustedFuture方法不改写父类的get方法，也就不需要其子类去处理SetFuture这个可能的结果对象了，用起来比较方便。
+   * 算是一种标记说明，并不是什么必须这样实现，其实只要确认AbstractFuture不会改写get方法，也是可以直接继承AbstractFuture的。
+   *
+   * 其实这个类的其他实现大多也涉及到SetFuture了。
+   *
+   * 可以看一下TrustedFuture的继承类是如何实现的，都重写了哪些方法。
    */
   abstract static class TrustedFuture<V> extends AbstractFuture<V> {
     @CanIgnoreReturnValue
@@ -730,6 +739,13 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * yet. That result, though not yet known, cannot be overridden by a call to a {@code set*}
    * method, only by a call to {@link #cancel}.
    *
+   * 设置此{@code Future}的结果，除非此{@code Future}已被取消或设置（包括{@linkplain #setFuture 异步设置}）。
+   * 当对此方法的调用返回时，仅当调用被接受时（在这种情况下它返回{@code true}），{@code Future}保证为{@linkplain #isDone done} 。
+   * 如果它返回{@code false}，则{@code Future}可能先前已异步设置，在这种情况下，其结果可能尚未知晓。
+   * 这个结果虽然还不知道，但只能通过调用{@link #cancel}来调用{@code set *}方法。
+   *
+   * 在一个任务执行完后，就会调用这个set方法去设置future的结果。
+   *
    * @param value the value to be used as the result
    * @return true if the attempt was accepted, completing the {@code Future}
    */
@@ -770,23 +786,36 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * supplied {@code Future} is done, unless this {@code Future} has already been cancelled or set
    * (including "set asynchronously," defined below).
    *
+   * 一旦提供的{@code Future}完成，设置此{@code Future}的结果以匹配提供的输入{@code Future}，
+   * 除非此{@code Future}已被取消或设置（包括“异步设置， “定义如下）。
+   *
    * <p>If the supplied future is {@linkplain #isDone done} when this method is called and the call
    * is accepted, then this future is guaranteed to have been completed with the supplied future by
    * the time this method returns. If the supplied future is not done and the call is accepted, then
    * the future will be <i>set asynchronously</i>. Note that such a result, though not yet known,
    * cannot be overridden by a call to a {@code set*} method, only by a call to {@link #cancel}.
    *
+   * <p>如果在调用此方法并且接受调用时提供的future是{@linkplain #isDone done}，那么在此方法返回时，
+   * 将保证使用提供的future完成此future。 如果提供的future没有完成且此调用已被授受，则future将被<i>异步设置</ i>。
+   * 请注意，结果目前还不确定，不能通过调用{@code set *}方法来覆盖这样的结果，只能通过调用{@link #cancel}来设置。
+   *
    * <p>If the call {@code setFuture(delegate)} is accepted and this {@code Future} is later
    * cancelled, cancellation will be propagated to {@code delegate}. Additionally, any call to
    * {@code setFuture} after any cancellation will propagate cancellation to the supplied {@code
    * Future}.
+   *
+   * <p>如果{@code setFuture（delegate）}调用被接受了，并且稍后取消此{@code Future}，则取消将传播到{@code delegate}。
+   * 此外，任何取消操作后的任何{@code setFuture}调用都会将取消传播到所提供的{@code Future}。
    *
    * <p>Note that, even if the supplied future is cancelled and it causes this future to complete,
    * it will never trigger interruption behavior. In particular, it will not cause this future to
    * invoke the {@link #interruptTask} method, and the {@link #wasInterrupted} method will not
    * return {@code true}.
    *
-   * @param future the future to delegate to
+   * <p>请注意，即使提供的future被取消并且导致此未来完成，也不会触发中断行为。
+   * 特别是，它不会导致此future调用{@link #interruptTask}方法，并且{@link #wasInterrupted}方法将不会返回{@code true}。
+   *
+   * @param future the future to delegate to （就是让this这个future去代理参数future，即从参数future中取得this这个future的最终执行结果。
    * @return true if the attempt was accepted, indicating that the {@code Future} was not previously
    *     cancelled or set.
    * @since 19.0
@@ -806,7 +835,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
         return false;
       }
       SetFuture valueToSet = new SetFuture<V>(this, future);
-      if (ATOMIC_HELPER.casValue(this, null, valueToSet)) {
+      if (ATOMIC_HELPER.casValue(this, null, valueToSet)) { // isDone以及get方法里会判断value是否为SetFuture类型的。
         // the listener is responsible for calling completeWithFuture, directExecutor is appropriate
         // since all we are doing is unpacking a completed future which should be fast.
         try {
