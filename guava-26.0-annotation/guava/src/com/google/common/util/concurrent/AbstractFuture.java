@@ -343,6 +343,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
   // TODO(lukes): investigate using the @Contended annotation on these fields when jdk8 is
   // available.
+  // 剖析Disruptor:为什么会这么快？(三)伪共享：http://developer.51cto.com/art/201306/398232.htm
+  // 伪共享和缓存行填充，从Java 6, Java 7 到Java 8：http://www.cnblogs.com/Binhua-Liu/p/5620339.html
+  // Java8的伪共享和缓存行填充--@Contended注释：https://www.cnblogs.com/Binhua-Liu/p/5623089.html
   /**
    * This field encodes the current state of the future.
    *
