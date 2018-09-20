@@ -135,6 +135,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
   // A heuristic for timed gets. If the remaining timeout is less than this, spin instead of
   // blocking. This value is what AbstractQueuedSynchronizer uses.
+  // 时间启发式获取。 如果剩余超时小于此值，则CPU自旋而不是阻塞。 此值是AbstractQueuedSynchronizer使用的值。
   private static final long SPIN_THRESHOLD_NANOS = 1000L;
 
   private static final AtomicHelper ATOMIC_HELPER;
@@ -151,6 +152,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       // catch absolutely everything and fall through to our 'SafeAtomicHelper'
       // The access control checks that ARFU does means the caller class has to be AbstractFuture
       // instead of SafeAtomicHelper, so we annoyingly define these here
+      // 绝对抓住所有东西（因为异常类型为Throwable），然后进入我们的'SafeAtomicHelper'。
+      // 访问控制检查ARFU是否意味着调用者类必须是AbstractFuture而不是SafeAtomicHelper，所以我们在这里烦人地定义这些
       try {
         helper =
             new SafeAtomicHelper(
@@ -159,12 +162,18 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
                 newUpdater(AbstractFuture.class, Waiter.class, "waiters"),
                 newUpdater(AbstractFuture.class, Listener.class, "listeners"),
                 newUpdater(AbstractFuture.class, Object.class, "value"));
+        // newUpdater可能会抛出一些非受检异常，如ClassCastException、IllegalArgumentException、RuntimeException，见方法的注释。
+        // 所以这里捕获处理了一下。
+        // 非受检异常（运行时异常）和受检异常的区别等：https://www.cnblogs.com/jimoer/p/6432542.html
+        // 注意一个误区：非受检异常是说编译器不强制检查捕获异常的代码，代码里可以捕获也可以不捕获，在声明可能抛出非受检异常的方法时，也可以不使用throws语句。
+        // 这就显示注释特别重要了，就像上面的newUpdater方法，在方法注释里详细说明了可能抛出非受检异常。
       } catch (Throwable atomicReferenceFieldUpdaterFailure) {
         // Some Android 5.0.x Samsung devices have bugs in JDK reflection APIs that cause
         // getDeclaredField to throw a NoSuchFieldException when the field is definitely there.
         // For these users fallback to a suboptimal implementation, based on synchronized. This will
         // be a definite performance hit to those users.
-        // 一些Android 5.0.x三星设备在JDK反射API中存在错误，导致getDeclaredField在字段肯定存在时抛出NoSuchFieldException。 对于这些用户，基于synchronized，回退到次优实现。 这将对这些用户产生明显的性能影响。
+        // 一些Android 5.0.x三星设备在JDK反射API中存在错误，导致getDeclaredField在字段肯定存在时抛出NoSuchFieldException。
+        // 对于这些用户，基于synchronized，回退到次优实现。 这将对这些用户产生明显的性能影响。
         // 见InterruptibleTask里的注释（那里用AtomicReference来实现了）。
         thrownAtomicReferenceFieldUpdaterFailure = atomicReferenceFieldUpdaterFailure;
         helper = new SynchronizedHelper();
@@ -174,11 +183,13 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
     // Prevent rare disastrous classloading in first call to LockSupport.park.
     // See: https://bugs.openjdk.java.net/browse/JDK-8074773
+    // LockSupport类的注释里的样例代码里有这行代码的说明。
     @SuppressWarnings("unused")
     Class<?> ensureLoaded = LockSupport.class;
 
     // Log after all static init is finished; if an installed logger uses any Futures methods, it
     // shouldn't break in cases where reflection is missing/broken.
+    // 所有静态init完成后记录; 如果安装的记录器使用任何Futures方法，则在反射丢失/损坏的情况下不应该破坏。
     if (thrownAtomicReferenceFieldUpdaterFailure != null) {
       log.log(Level.SEVERE, "UnsafeAtomicHelper is broken!", thrownUnsafeFailure);
       log.log(
@@ -1135,6 +1146,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    *
    * <p>Static initialization of this class will fail if the {@link sun.misc.Unsafe} object cannot
    * be accessed.
+   *
+   * <p>如果无法访问{@link sun.misc.Unsafe}对象，则此类的静态初始化将失败。
    */
   private static final class UnsafeAtomicHelper extends AtomicHelper {
     static final sun.misc.Unsafe UNSAFE;
@@ -1152,14 +1165,17 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
         try {
           unsafe =
               AccessController.doPrivileged(
-                  new PrivilegedExceptionAction<sun.misc.Unsafe>() {
+                  new PrivilegedExceptionAction<sun.misc.Unsafe>() { // AccessController.doPrivileged解释：https://blog.csdn.net/u011703657/article/details/51848700
                     @Override
                     public sun.misc.Unsafe run() throws Exception {
                       Class<sun.misc.Unsafe> k = sun.misc.Unsafe.class;
-                      for (java.lang.reflect.Field f : k.getDeclaredFields()) {
+                      for (java.lang.reflect.Field f : k.getDeclaredFields()) { // sun.misc.Unsafe内部有一个sun.misc.Unsafe类型的单例对象，
+                        // 在这里是通过遍历成员变量找到此单例对象的，而且需要做转型后返回。
+                        // sun.misc.unsafe类的使用：https://blog.csdn.net/fenglibing/article/details/17138079
+                        // 其实简单地参考上面的链接中的反射直接获取并生成此单例。
                         f.setAccessible(true);
                         Object x = f.get(null);
-                        if (k.isInstance(x)) {
+                        if (k.isInstance(x)) { // Java中instanceof和isInstance区别详解：https://www.cnblogs.com/greatfish/p/6096038.html
                           return k.cast(x);
                         }
                       }
