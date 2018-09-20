@@ -214,8 +214,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
      * Constructor for the TOMBSTONE, avoids use of ATOMIC_HELPER in case this class is loaded
      * before the ATOMIC_HELPER. Apparently this is possible on some android platforms.
      *
-     * TOMBSTONE的构造函数，在ATOMIC_HELPER之前加载此类时，避免使用ATOMIC_HELPER。 显然这在某些Android平台上是可行的。
-     * 注意：下面有无参构造函数用到ATOMIC_HELPER，所以要避免出来创建TOMBSTONE时，ATOMIC_HELPER还未初始化，所以这里增加了个无用的构造函数。
+     * TOMBSTONE的构造函数，在ATOMIC_HELPER之前加载此类时，避免使用ATOMIC_HELPER。 显然在ATOMIC_HELPER之前加载此类在某些Android平台上是可能存在的。
+     * 注意：下面有无参构造函数用到ATOMIC_HELPER，所以要避免出现创建TOMBSTONE时，ATOMIC_HELPER还未初始化，所以这里增加了个无用的构造函数。
      */
     Waiter(boolean unused) {}
 
@@ -234,6 +234,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       // This is racy with removeWaiter. The consequence of the race is that we may spuriously call
       // unpark even though the thread has already removed itself from the list. But even if we did
       // use a CAS, that race would still exist (it would just be ever so slightly smaller).
+      // 那个单词应该是race，应该是作者错打成racy了。
+      // 这与removeWaiter之间存在竞争。 竞争的结果可能存在这种情况：即使线程已从列表中删除，我们也可能虚假地调用unpark。
+      // 但即使我们确实使用了CAS，这种竞争仍然会存在（它会稍微小一些）。
       Thread w = thread;
       if (w != null) {
         thread = null;
@@ -247,33 +250,40 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * nodes. This is an O(n) operation in the common case (and O(n^2) in the worst), but we are saved
    * by two things.
    *
+   * 将给定节点标记为“已删除”（null waiter），然后扫描链表将所有已删除的节点从链表中去除。
+   * 这是常见情况下的O（n）操作（最坏情况下为O（n ^ 2）），但我们通过以下两点此方法还是可以接受的：
+   *
    * <ul>
    *   <li>This is only called when a waiting thread times out or is interrupted. Both of which
    *       should be rare.
+   *       仅在等待线程超时或中断时调用此方法。 两者都应该是罕见的。在get方法里会调用此方法。
    *   <li>The waiters list should be very short.
    * </ul>
    */
-  private void removeWaiter(Waiter node) {
+  private void removeWaiter(Waiter node) { // 这里的实现是一个正常的删除链表中某元素的操作。
     node.thread = null; // mark as 'deleted'
     restart:
     while (true) {
-      Waiter pred = null;
-      Waiter curr = waiters;
+      Waiter pred = null; // 前驱节点，一开始头节点的前驱节点为null。
+      Waiter curr = waiters; // 当前节点
       if (curr == Waiter.TOMBSTONE) {
         return; // give up if someone is calling complete
       }
-      Waiter succ;
+      Waiter succ; // 后继节点
       while (curr != null) {
         succ = curr.next;
         if (curr.thread != null) { // we aren't unlinking this node, update pred.
           pred = curr;
         } else if (pred != null) { // We are unlinking this node and it has a predecessor.
           pred.next = succ;
-          if (pred.thread == null) { // We raced with another node that unlinked pred. Restart.
+          if (pred.thread == null) { // We raced with another node that unlinked pred. Restart. 注意：这些thread、next都是volatile类型的。
+            // 为什么只在这里检查一下可能存在的竞争而导致pred.thread为null呢？原因是这样的：因为pred.next=succ之后，就假设pred之前的元素都是有效的、非删除状态了，
+            // 所以在这里要把一下关，再检查一下当前的节点是否为有效的。
+            // 其实这里再次判断只是为了能在删除无效节点这点上更加有效率而已，而非必须要这样做的，其实这里不检测，也不会有并发问题。
             continue restart;
           }
         } else if (!ATOMIC_HELPER.casWaiters(this, curr, succ)) { // We are unlinking head
-          continue restart; // We raced with an add or complete
+          continue restart; // We raced with an add or complete 这个竞争情况考虑的太严谨了
         }
         curr = succ;
       }
