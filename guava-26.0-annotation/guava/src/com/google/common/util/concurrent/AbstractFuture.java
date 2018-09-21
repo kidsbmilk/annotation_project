@@ -474,6 +474,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       throws InterruptedException, TimeoutException, ExecutionException {
     // NOTE: if timeout < 0, remainingNanos will be < 0 and we will fall into the while(true) loop
     // at the bottom and throw a timeoutexception.
+      // 注意：如果timeout <0，remainingNanos将<0，我们将进入底部的while（true）循环并抛出timeoutexception。
+      // 如果remainingNanos<0，则这里的实现中，会直接到最下面的if(isDone())那里，将会抛出超时异常。这里的while(true)应该是在形容这样的效果：总是会抛出超时异常，而非实现中有while(true)。
+      // 感觉作者的注释不是太详细、恰当。
     long remainingNanos = unit.toNanos(timeout); // we rely on the implicit null check on unit.
     if (Thread.interrupted()) {
       throw new InterruptedException();
@@ -540,6 +543,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     // It's confusing to see a completed future in a timeout message; if isDone() returns false,
     // then we know it must have given a pending toString value earlier. If not, then the future
     // completed after the timeout expired, and the message might be success.
+    // 在超时消息中看到Future的完成令人困惑; 如果isDone()返回false，那么我们知道它必须先提供一个在等待期间的toString值。
+    // 如果isDone()返回true，那么Future在超时到期时完成，并且返回的消息提示是成功的。
     if (isDone()) {
       throw new TimeoutException(
           "Waited "
