@@ -74,6 +74,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @SuppressWarnings("ShortCircuitBoolean") // we use non-short circuiting comparisons intentionally 我们故意使用非短路比较
 @GwtCompatible(emulated = true)
 @ReflectionSupport(value = ReflectionSupport.Level.FULL) // 这个是com.google.j2objc.annotations中的。
+/**
+ * 注意：读这个类的代码时，先不要管每个方法都是由什么线程去执行的，这个类本身就是一个抽象类。只要把这些方法串起来能合理完成任务就行。
+ */
 public abstract class AbstractFuture<V> extends FluentFuture<V> {
   // NOTE: Whenever both tests are cheap and functional, it's faster to use &, | instead of &&, ||
 
@@ -93,6 +96,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * 其实这个类的其他实现大多也涉及到SetFuture了。
    *
    * 可以看一下TrustedFuture的继承类是如何实现的，都重写了哪些方法。
+   *
+   * 注意：TrustedFuture的子类不能重写其方法，因为TrustedFuture里的几个方法是final的。getFutureValue里也有这个说明。
    */
   abstract static class TrustedFuture<V> extends AbstractFuture<V> {
     @CanIgnoreReturnValue
@@ -197,19 +202,19 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     }
   }
 
-  /**
-   * 什么是CAS机制？：https://blog.csdn.net/qq_32998153/article/details/79529704
-   * Java原子类中CAS的底层实现：http://www.cnblogs.com/noKing/p/9094983.html
-   * Treiber Stack介绍：https://www.cnblogs.com/micrari/p/7719408.html
-   * FutureTask源码解读：http://www.cnblogs.com/micrari/p/7374513.html
-   *
-   * 其实我觉得这里的成员变量并不需要原子化更新域而将其设置为volatile类型的，见Listener里就没有设置为volatile。
-   * 在get()中，对Waiter链表的操作，其实也是以Waiter为基本单元的，与Waiter里的元素的volatile与否关系不大。
-   *
-   * 去除这里的volatile变量，去除原子化更新域中的相应操作 TODO. 这样的话，作者注释里的non-volatile write也就可以理解了。
-   *
-   * 这些东西在《java并发编程实战》第二版15.4.3节中有说明，使用原子化域主要是为了相对于使用AtomicReference细微的性能提升。
-   */
+//  /**
+//   * 什么是CAS机制？：https://blog.csdn.net/qq_32998153/article/details/79529704
+//   * Java原子类中CAS的底层实现：http://www.cnblogs.com/noKing/p/9094983.html
+//   * Treiber Stack介绍：https://www.cnblogs.com/micrari/p/7719408.html
+//   * FutureTask源码解读：http://www.cnblogs.com/micrari/p/7374513.html
+//   *
+//   * 其实我觉得这里的成员变量并不需要原子化更新域而将其设置为volatile类型的，见Listener里就没有设置为volatile。
+//   * 在get()中，对Waiter链表的操作，其实也是以Waiter为基本单元的，与Waiter里的元素的volatile与否关系不大。
+//   *
+//   * 去除这里的volatile变量，去除原子化更新域中的相应操作 TODO. 这样的话，作者注释里的non-volatile write也就可以理解了。
+//   *
+//   * 这些东西在《java并发编程实战》第二版15.4.3节中有说明，使用原子化域主要是为了相对于使用AtomicReference细微的性能提升。
+//   */
   /** Waiter links form a Treiber stack, in the {@link #waiters} field. */
   private static final class Waiter {
     static final Waiter TOMBSTONE = new Waiter(false /* ignored param */); // tombstone有铭牌的意思，相当于一个标记，Waiter与Listener类中都有这个。
@@ -382,6 +387,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       }
       Object valueToSet = getFutureValue(future);
       if (ATOMIC_HELPER.casValue(owner, this, valueToSet)) { // 注意这个是casValue，如果owner.value等于this，则将其值设置为valueToSet.
+        // 这里体现了SetFuture类名的含义，是来设置future的，而AbstractFuture中的值是用value表示的，所以这里就是设置为getFutureValue的返回值。
         complete(owner);
       }
     }
@@ -441,23 +447,23 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   //   is). If we wanted to be strict about it, we could store the unpark() time in the Waiter node
   //   and we could use that to make a decision about whether or not we timed out prior to being
   //   unparked.
-  /**
-   * 获取和定时获取
-   *
-   *    *响应中断
-   *    *如果您不打算使用park操作，请不要创建Waiter节点，这有助于减少waiters队列上的争用。
-   *    *将在#value变为非null /非SetFuture时定义Future完成。
-   *    *当waiters字段包含TOMBSTONE时，可以观察到Future完成情况。（Waiter与Listener类里都有个TOMBSTONE字段）
-   *
-   *  Timed Get
-   *    需要考虑一些设计约束
-   *    *我们希望对小超时做出响应，unpark（）具有非平凡的延迟开销（我在64位Linux系统上观察到12个微处理器唤醒停放的线程）。因此，如果超时很小，我们不应该park（）。
-   *        这需要与cpu的自旋开销进行折衷，因此我们使用SPIN_THRESHOLD_NANOS，这是AbstractQueuedSynchronizer用于类似目的的。
-   *    *我们想要在0的超时时间内合理地行事
-   *    *我们对完成的响应速度比超时更快。这是因为parkNanos依赖于系统调度，因此我们可能会错过我们的截止日期，或者unpark（）可能会被延迟，因此即使我们没有超时，
-   *        也会因为unpark()被延迟而超时。为了比较，FutureTask表示任务完成，而AQS是非确定性的（取决于waiter在队列中的位置）。如果我们想严格要求它，
-   *        我们可以将unpark（）时间存储在Waiter节点中，我们可以使用它来决定我们是否在取消停放之前超时。
-   */
+//  /**
+//   * 获取和定时获取
+//   *
+//   *    *响应中断
+//   *    *如果您不打算使用park操作，请不要创建Waiter节点，这有助于减少waiters队列上的争用。
+//   *    *将在#value变为非null /非SetFuture时定义Future完成。
+//   *    *当waiters字段包含TOMBSTONE时，可以观察到Future完成情况。（Waiter与Listener类里都有个TOMBSTONE字段）
+//   *
+//   *  Timed Get
+//   *    需要考虑一些设计约束
+//   *    *我们希望对小超时做出响应，unpark（）具有非平凡的延迟开销（我在64位Linux系统上观察到12个微处理器唤醒停放的线程）。因此，如果超时很小，我们不应该park（）。
+//   *        这需要与cpu的自旋开销进行折衷，因此我们使用SPIN_THRESHOLD_NANOS，这是AbstractQueuedSynchronizer用于类似目的的。
+//   *    *我们想要在0的超时时间内合理地行事
+//   *    *我们对完成的响应速度比超时更快。这是因为parkNanos依赖于系统调度，因此我们可能会错过我们的截止日期，或者unpark（）可能会被延迟，因此即使我们没有超时，
+//   *        也会因为unpark()被延迟而超时。为了比较，FutureTask表示任务完成，而AQS是非确定性的（取决于waiter在队列中的位置）。如果我们想严格要求它，
+//   *        我们可以将unpark（）时间存储在Waiter节点中，我们可以使用它来决定我们是否在取消停放之前超时。
+//   */
 
   /**
    * {@inheritDoc}
@@ -625,6 +631,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   }
 
   /** Unboxes {@code obj}. Assumes that obj is not {@code null} or a {@link SetFuture}. */
+  // 这个方法主要是在get方法里被调用，在调用这个方法之前会判断obj不为null，且不是SetFuture.
   private V getDoneValue(Object obj) throws ExecutionException {
     // While this seems like it might be too branch-y, simple benchmarking proves it to be
     // unmeasurable (comparing done AbstractFutures with immediateFuture)
@@ -862,15 +869,16 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * Future}.
    *
    * <p>如果{@code setFuture（delegate）}调用被接受了，并且稍后取消此{@code Future}，则取消将传播到{@code delegate}。
-   * 此外，任何取消操作后的任何{@code setFuture}调用都会将取消传播到所提供的{@code Future}。
+   * 此外，任何取消操作后的任何{@code setFuture}调用都会将取消传播到所提供的{@code Future}。（这个的实现见setFuturn方法的最后面）
    *
    * <p>Note that, even if the supplied future is cancelled and it causes this future to complete,
    * it will never trigger interruption behavior. In particular, it will not cause this future to
    * invoke the {@link #interruptTask} method, and the {@link #wasInterrupted} method will not
    * return {@code true}.
    *
-   * <p>请注意，即使提供的future被取消并且导致此未来完成，也不会触发中断行为。
+   * <p>请注意，即使提供的future被取消并且导致此future完成，也不会触发中断行为。
    * 特别是，它不会导致此future调用{@link #interruptTask}方法，并且{@link #wasInterrupted}方法将不会返回{@code true}。
+   * （这个见SetFuture.run() -> getFutureValue方法里的实现。）
    *
    * @param future the future to delegate to （就是让this这个future去代理参数future，即从参数future中取得this这个future的最终执行结果。
    * @return true if the attempt was accepted, indicating that the {@code Future} was not previously
@@ -895,12 +903,16 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       if (ATOMIC_HELPER.casValue(this, null, valueToSet)) { // isDone以及get方法里会判断value是否为SetFuture类型的。
         // the listener is responsible for calling completeWithFuture, directExecutor is appropriate
         // since all we are doing is unpacking a completed future which should be fast.
+        // 监听器负责调用completeWithFuture，directExecutor是合适的，因为我们所做的就是解包一个完成的future，这是非常快的操作。
         try {
-          future.addListener(valueToSet, directExecutor());
+          future.addListener(valueToSet, directExecutor()); // 这个是MoreExecutors里的方法
         } catch (Throwable t) {
           // addListener has thrown an exception! SetFuture.run can't throw any exceptions so this
           // must have been caused by addListener itself. The most likely explanation is a
           // misconfigured mock. Try to switch to Failure.
+          // addListener抛出异常！ SetFuture.run不能抛出任何异常，因此这必须是由addListener本身引起的。 最可能的解释是错误配置的模拟。 尝试切换到失败。
+          // 如果设置监听器时任务future已完成，则会去直接执行，在直接执行时，会调用SetFuture.run，所以上面会提到这个方法。
+          // 可以看ListenableFuture.addListener方法的注释，可能会抛出RejectedExecutionException，继承自RuntimeException，是免检异常。
           Failure failure;
           try {
             failure = new Failure(t);
@@ -908,6 +920,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
             failure = Failure.FALLBACK_INSTANCE;
           }
           // Note: The only way this CAS could fail is if cancel() has raced with us. That is ok.
+          // 注意：此CAS失败的唯一方法是cancel（）与我们竞争。 那没问题。
           boolean unused = ATOMIC_HELPER.casValue(this, valueToSet, failure);
         }
         return true;
@@ -916,6 +929,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     }
     // The future has already been set to something. If it is cancellation we should cancel the
     // incoming future.
+    // 此future（this）已经被设置为某种对象，如果它是Cancellation类型的，则取消将传播到输入的future，见下面的实现，还有此方法前的注释说明。
     if (localValue instanceof Cancellation) {
       // we don't care if it fails, this is best-effort.
       future.cancel(((Cancellation) localValue).wasInterrupted);
@@ -926,8 +940,10 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   /**
    * Returns a value that satisfies the contract of the {@link #value} field based on the state of
    * given future.
+   * 根据给定的future的状态返回一个满足{@link #value}字段的约定（value字段有多种可能的情况，见其注释）的值。
    *
    * <p>This is approximately the inverse of {@link #getDoneValue(Object)}
+   * 这与{@link #getDoneValue（Object）}大致相反。
    */
   private static Object getFutureValue(ListenableFuture<?> future) {
     Object valueToSet;
@@ -936,11 +952,17 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       // override .get() (since it is final) and therefore this is equivalent to calling .get()
       // and unpacking the exceptions like we do below (just much faster because it is a single
       // field read instead of a read, several branches and possibly creating exceptions).
+      // 打破TrustedFuture实例的封装，因为我们知道子类不能覆盖.get（）（因为它是final），因此这相当于调用.get（）并像下面那样解压缩异常
+      // （因为它是单个字段读取而不是读取几个分支并且是可能产生异常的几个分支，所以更快）。
       Object v = ((AbstractFuture<?>) future).value;
       if (v instanceof Cancellation) {
         // If the other future was interrupted, clear the interrupted bit while preserving the cause
-        // this will make it consistent with how non-trustedfutures work which cannot propagate the
+        // this will make it consistent with how non-trusted futures work which cannot propagate the
         // wasInterrupted bit
+        // 如果另一个future被中断，在保留原因的同时清除被中断的位，这将使其与不可信的future的工作方式一致，即不传播isInterrupted位。
+        // 这里清除了中断位，由外部调用者根据cause去检测是否为中断异常，然后可以根据需要再次抛出异常。
+        // 这个不可信的future是指，不能保证外部的所有future都会传播这个中断位，所以只能放宽约定，不要依赖这个中断位的传递情况，只传递原因。
+        // 这个见setFuture方法前的注释。
         Cancellation c = (Cancellation) v;
         if (c.wasInterrupted) {
           v =
@@ -953,7 +975,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     } else {
       // Otherwise calculate valueToSet by calling .get()
       try {
-        Object v = getDone(future);
+        Object v = getDone(future); // 这个是Futures里的方法。这个最终会转到get方法。
         valueToSet = v == null ? NULL : v;
       } catch (ExecutionException exception) {
         valueToSet = new Failure(exception.getCause());
@@ -976,13 +998,15 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       // structure for them.
       // afterDone() should be generally fast and only used for cleanup work... but in theory can
       // also be recursive and create StackOverflowErrors
+      // 我们在侦听器之前调用它，以避免需要为它们管理单独的堆栈数据结构。
+      // afterDone（）通常应该很快并且仅用于清理工作......但理论上也可以递归并创建StackOverflowErrors。
       future.afterDone();
       // push the current set of listeners onto next
-      next = future.clearListeners(next);
+      next = future.clearListeners(next); // 注意这个next!!!
       future = null;
       while (next != null) {
         Listener curr = next;
-        next = next.next;
+        next = next.next; // 注意这个next!!!
         Runnable task = curr.task;
         if (task instanceof SetFuture) {
           SetFuture<?> setFuture = (SetFuture<?>) task;
@@ -991,10 +1015,19 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
           // Handling this special case is important because there is no way to pass an executor to
           // setFuture, so a user couldn't break the chain by doing this themselves.  It is also
           // potentially common if someone writes a recursive Futures.transformAsync transformer.
+          // 我们特别解开setFuture以避免在SetFutures长链的情况下出现StackOverflowErrors。处理这种特殊情况很重要，
+          // 因为无法将executor传递给setFuture，因此用户无法通过自己执行此操作来破坏链。
+          // 如果有人编写递归的Futures.transformAsync转换器，这也是很常见的。
           future = setFuture.owner;
-          if (future.value == setFuture) {
+          if (future.value == setFuture) { // 这里的判断很自然，跟SetFuture.run里的判断一样。
             Object valueToSet = getFutureValue(setFuture.future);
-            if (ATOMIC_HELPER.casValue(future, setFuture, valueToSet)) {
+            if (ATOMIC_HELPER.casValue(future, setFuture, valueToSet)) { // 注意这个future，如果这里操作成功，则这个future算是完成了，
+              // 然后开始跳到外层去继续处理此future上的waiters以及listener。注意：在处理这个future时，并不会丢弃这个future所属的setFuture所属的listener后面的listener，
+              // 因为后面的listener已经存放在next里了，然后在continue outer后，会把next放入此future的listener链表的后面。
+              // 这里的奇葩实现其实是非递归写法，如果递归写法会比较好理解，但是效率可能会低一些。
+              // 这里listener的形状如同是二叉树一样，比如future1有三个listener，listenerA, listenerB, listenerC，而listenerB里的任务可能是一个SetFuture，
+              // 然后这个SetFuture属于future2，那么从future1的listener链表处理到listenerB时，就会去处理listenerB的future2上的listener链表，比如为listenerD,listenerF，
+              // 则continue后的总的listener链表为：listenerD, listenerF, listenerC。
               continue outer;
             }
           }
@@ -1016,6 +1049,12 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * intended for very lightweight cleanup work, for example, timing statistics or clearing fields.
    * If your task does anything heavier consider, just using a listener with an executor.
    *
+   * 在完成未来之后完全调用一次的回调方法。
+   * 如果在完成期间也运行{@link #interruptTask}，则{@link #afterDone}将在其后运行。
+   * @code AbstractFuture}中此方法的默认实现不执行任何操作。
+   * 这适用于非常轻量级的清理工作，例如，计时统计或清除字段。
+   * 如果你的任务做了更重的考虑，只需使用一个带executor的监听器。
+   *
    * @since 20.0
    */
   @Beta
@@ -1026,6 +1065,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * Returns the exception that this {@code Future} completed with. This includes completion through
    * a call to {@link #setException} or {@link #setFuture setFuture}{@code (failedFuture)} but not
    * cancellation.
+   *
+   * 返回此{@code Future}完成时的异常。 这包括通过调用{@link #setException}或{@link #setFuture setFuture} {@code (failedFuture)}设置的完成但没有取消。
    *
    * @throws RuntimeException if the {@code Future} has not failed
    */
@@ -1048,8 +1089,10 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     Waiter head;
     do {
       head = waiters;
-    } while (!ATOMIC_HELPER.casWaiters(this, head, Waiter.TOMBSTONE));
-    for (Waiter currentWaiter = head; currentWaiter != null; currentWaiter = currentWaiter.next) {
+    } while (!ATOMIC_HELPER.casWaiters(this, head, Waiter.TOMBSTONE));// 这个是如果一直不成功，就一直尝试，如何理解呢？
+    // 这样子理解：Waiter表示要操作park动作，要阻塞线程，如果当前的线程一直不能成功，则表示一直有新的线程在阻塞等待结果。只有当当前线程操作成功，
+    // 成功将waiters设置为Waiter.TOMBSTONE，表示此AbstractFuture已经完成，可以去取value了。见get方法上面的注释。
+    for (Waiter currentWaiter = head; currentWaiter != null; currentWaiter = currentWaiter.next) { // 挨个释放Waiter。
       currentWaiter.unpark(); // get方法里有LockSupport.park操作。
     }
   }
@@ -1068,9 +1111,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     Listener head;
     do {
       head = listeners;
-    } while (!ATOMIC_HELPER.casListeners(this, head, Listener.TOMBSTONE));
+    } while (!ATOMIC_HELPER.casListeners(this, head, Listener.TOMBSTONE)); // 这里的解释参考releaseWaiters的注释。
     Listener reversedList = onto;
-    while (head != null) {
+    while (head != null) { // 反转链表
       Listener tmp = head;
       head = head.next;
       tmp.next = reversedList;
