@@ -40,7 +40,9 @@ UncheckedTimeoutException.java
 
 guava concurrent设置思想很超前，想实现的功能非常酷炫，能极大地的提高开发效率。（也有可能是我对jdk concurrent不够了解。）
 
-应该多写一些小demo来加深理解，只看明白是不行地。
+应该多写一些小demo来加深理解，只看明白是不行的。
+
+要设计一个好的并发模型太难了，慢慢学习吧。
 
 源码里的链接：
 https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html#jls-17.4.5
