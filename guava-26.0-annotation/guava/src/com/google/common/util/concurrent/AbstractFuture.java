@@ -486,22 +486,29 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       return getDoneValue(localValue);
     }
     // we delay calling nanoTime until we know we will need to either park or spin
+      // 我们推迟调用nanoTime，直到我们知道我们需要停放或旋转
     final long endNanos = remainingNanos > 0 ? System.nanoTime() + remainingNanos : 0;
     long_wait_loop:
     if (remainingNanos >= SPIN_THRESHOLD_NANOS) {
       Waiter oldHead = waiters;
       if (oldHead != Waiter.TOMBSTONE) {
-        Waiter node = new Waiter();
+        Waiter node = new Waiter(); // 这里想要使用park操作，所以创建了一个Waiter，见get方法上的注释：
+          // * Don't create Waiter nodes if you aren't going to park, this helps reduce contention on the
+          //   waiters field.
+          // 注意：Waiter()里的实现并不是空的（不要有主观上的想法），其实现是把当前线程放入node.thread。
+          // 注意：执行get的线程是当前线程，而执行Waiter.unpark里的线程是执行AbstractFuture的线程。
+          // 所以效果就是AbstractFuture的线程去执行任务，然后其他线程来取数据时可能会被阻塞住以等待任务执行完成或者超时返回。
         do {
           node.setNext(oldHead);
           if (ATOMIC_HELPER.casWaiters(this, oldHead, node)) {
             while (true) {
-              LockSupport.parkNanos(this, remainingNanos);
+              LockSupport.parkNanos(this, remainingNanos); // 这个是阻塞在this这个对象上，parkNanos内部会有当前线程，见其实现。
               // Check interruption first, if we woke up due to interruption we need to honor that.
               if (Thread.interrupted()) {
-                removeWaiter(node);
+                removeWaiter(node); // park操作已结束，所以移除这个node。
                 throw new InterruptedException();
               }
+              // parkNanos的注释里说了很多种可能的唤醒原因。
 
               // Otherwise re-read and check doneness. If we loop then it must have been a spurious
               // wakeup
@@ -517,17 +524,23 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
                 removeWaiter(node);
                 break long_wait_loop; // jump down to the busy wait loop
               }
+              // 继续阻塞等待
             }
           }
           oldHead = waiters; // re-read and loop.
-        } while (oldHead != Waiter.TOMBSTONE);
+        } while (oldHead != Waiter.TOMBSTONE); // 不断地尝试cas。
       }
       // re-read value, if we get here then we must have observed a TOMBSTONE while trying to add a
       // waiter.
+        // 见get方法上面的注释：
+        // * Future completion can be observed if the waiters field contains a TOMBSTONE
       return getDoneValue(value);
     }
     // If we get here then we have remainingNanos < SPIN_THRESHOLD_NANOS and there is no node on the
     // waiters list
+      // 到这里时，remainingNanos < SPIN_THRESHOLD_NANOS，并用waiters链表里没有node.
+      // 对于这个没有node，可以这样理解，增加一个node就是为了调用park方法，如果有多个node，则后一个node会park，然后等待它前面的node的unpark，最后再upnark自己。
+      // 所以，到这里只，waiters链表里是没有node的，要不然，还是在park的状态，即阻塞的状态。（注意，上面的循环中有removeWaiter的操作，所以到这里时是没有node的。）
     while (remainingNanos > 0) {
       localValue = value;
       if (localValue != null & !(localValue instanceof SetFuture)) {
@@ -536,16 +549,16 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       if (Thread.interrupted()) {
         throw new InterruptedException();
       }
-      remainingNanos = endNanos - System.nanoTime();
+      remainingNanos = endNanos - System.nanoTime(); // 继续自旋等待
     }
 
     String futureToString = toString();
     // It's confusing to see a completed future in a timeout message; if isDone() returns false,
     // then we know it must have given a pending toString value earlier. If not, then the future
     // completed after the timeout expired, and the message might be success.
-    // 在超时消息中看到Future的完成令人困惑; 如果isDone()返回false，那么我们知道它必须先提供一个在等待期间的toString值。
+    // 在超时消息中看到Future的完成会令人产生困惑; 如果isDone()返回false，那么我们知道它必须先提供一个在等待期间的toString值。
     // 如果isDone()返回true，那么Future在超时到期时完成，并且返回的消息提示是成功的。
-    if (isDone()) {
+    if (isDone()) { // 这个其实就是想在超时再检查一次看完成没有。
       throw new TimeoutException(
           "Waited "
               + timeout
@@ -553,7 +566,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
               + unit.toString().toLowerCase(Locale.ROOT)
               + " but future completed as timeout expired");
     }
-    throw new TimeoutException(
+    throw new TimeoutException( // 超时了，没有完成
         "Waited "
             + timeout
             + " "
@@ -567,6 +580,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    *
    * <p>The default {@link AbstractFuture} implementation throws {@code InterruptedException} if the
    * current thread is interrupted during the call, even if the value is already available.
+   * AbstractFuture的默认实现中如果当前线程被中断了则抛出InterruptedException，即使当前已经得到value了，也会抛出InterruptedException。
    *
    * @throws CancellationException {@inheritDoc}
    */
