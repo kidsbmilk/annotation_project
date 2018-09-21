@@ -202,6 +202,13 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * Java原子类中CAS的底层实现：http://www.cnblogs.com/noKing/p/9094983.html
    * Treiber Stack介绍：https://www.cnblogs.com/micrari/p/7719408.html
    * FutureTask源码解读：http://www.cnblogs.com/micrari/p/7374513.html
+   *
+   * 其实我觉得这里的成员变量并不需要原子化更新域而将其设置为volatile类型的，见Listener里就没有设置为volatile。
+   * 在get()中，对Waiter链表的操作，其实也是以Waiter为基本单元的，与Waiter里的元素的volatile与否关系不大。
+   *
+   * 去除这里的volatile变量，去除原子化更新域中的相应操作 TODO. 这样的话，作者注释里的non-volatile write也就可以理解了。
+   *
+   * 这些东西在《java并发编程实战》第二版15.4.3节中有说明，使用原子化域主要是为了相对于使用AtomicReference细微的性能提升。
    */
   /** Waiter links form a Treiber stack, in the {@link #waiters} field. */
   private static final class Waiter {
@@ -292,6 +299,11 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   }
 
   /** Listeners also form a stack through the {@link #listeners} field. */
+  // 这个Listener里的成员变量竟然不是volatile类型的，是不是有问题？
+  // 这里的实现与Waiter不同，难道是Waiter里的volatile修饰是多余的？
+  // 没有问题，也不是多余的。是这样的：在ATOMIC_HELPER的实现里有Waiter成员变量thread还有next的原子化更新域，所以Waiter里的成员变量要设置为volatile类型的。
+  // 而这里没有原子化更新Listener里的变量的域，所以不需要。
+  // 在Waiter中，原子化更新域是多作的，见那里的注释，可以改进一下。
   private static final class Listener {
     static final Listener TOMBSTONE = new Listener(null, null);
     final Runnable task;
@@ -317,7 +329,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
               @Override
               public synchronized Throwable fillInStackTrace() {
                 return this; // no stack trace
-              }
+              } // Throwable.fillInStackTrace：https://blog.csdn.net/iceman1952/article/details/8230804
+              // java异常分析；剖析printStackTrace和fillInStackTrace：https://blog.csdn.net/yangkai_hudong/article/details/18409007
             });
     final Throwable exception;
 
@@ -363,12 +376,12 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
     @Override
     public void run() {
-      if (owner.value != this) {
+      if (owner.value != this) { // 这个value相当于把多个future串起来，而这里不等于，表示没串联关系，不需要处理。
         // nothing to do, we must have been cancelled, don't bother inspecting the future.
         return;
       }
       Object valueToSet = getFutureValue(future);
-      if (ATOMIC_HELPER.casValue(owner, this, valueToSet)) {
+      if (ATOMIC_HELPER.casValue(owner, this, valueToSet)) { // 注意这个是casValue，如果owner.value等于this，则将其值设置为valueToSet.
         complete(owner);
       }
     }
@@ -394,7 +407,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    *       argument.
    * </ul>
    */
-  private volatile @Nullable Object value;
+  private volatile @Nullable Object value; // 上面注释中的一些可能的状态，都由这个值来表示。
 
   /** All listeners. */
   private volatile @Nullable Listener listeners;
