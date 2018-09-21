@@ -667,18 +667,22 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * #setFuture set asynchronously}, then the cancellation will also be propagated to the delegate
    * {@code Future} that was supplied in the {@code setFuture} call.
    *
+   * 如果此future取消了，则也会将取消传播到代理future，这个代理future是通过setFuture设置的。（见setFuture方法的注释）
+   *
    * <p>Rather than override this method to perform additional cancellation work or cleanup,
    * subclasses should override {@link #afterDone}, consulting {@link #isCancelled} and {@link
    * #wasInterrupted} as necessary. This ensures that the work is done even if the future is
    * cancelled without a call to {@code cancel}, such as by calling {@code
    * setFuture(cancelledFuture)}.
+   * 不要覆盖此方法来执行其他取消工作或清理， 子类应覆盖{@link #afterDone}，根据需要咨询{@link #isCancelled}和{@link #wasInterrupted}。
+   * 这确保即使在未调用{@code cancel}的情况下取消future也可以完成工作，例如通过调用{@code setFuture（cancelledFuture）}。
    */
   @CanIgnoreReturnValue
   @Override
   public boolean cancel(boolean mayInterruptIfRunning) {
     Object localValue = value;
     boolean rValue = false;
-    if (localValue == null | localValue instanceof SetFuture) {
+    if (localValue == null | localValue instanceof SetFuture) { // 注意：这是一个位运算，两个都会判断
       // Try to delay allocating the exception. At this point we may still lose the CAS, but it is
       // certainly less likely.
       Object valueToSet =
@@ -691,7 +695,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       AbstractFuture<?> abstractFuture = this;
       while (true) {
         if (ATOMIC_HELPER.casValue(abstractFuture, localValue, valueToSet)) {
-          rValue = true;
+          rValue = true; // 这个指示取消操作是否执行成功了。如果在执行取消时future已经完成了，则执行取消操作失败。
           // We call interuptTask before calling complete(), which is consistent with
           // FutureTask
           if (mayInterruptIfRunning) {
@@ -699,8 +703,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
           }
           complete(abstractFuture);
           if (localValue instanceof SetFuture) {
-            // propagate cancellation to the future set in setfuture, this is racy, and we don't
+            // propagate cancellation to the future set in setFuture, this is racy, and we don't
             // care if we are successful or not.
+            // 传播cancellation，可能存在竞争，但是不管是否成功
             ListenableFuture<?> futureToPropagateTo = ((SetFuture) localValue).future;
             if (futureToPropagateTo instanceof TrustedFuture) {
               // If the future is a TrustedFuture then we specifically avoid calling cancel()
@@ -714,30 +719,33 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
                  * 如果Future是TrustedFuture，那么我们特别避免调用cancel（）
                  *
                  *   这有两个好处
-                 *   1.对于与setFuture一起串起的长期期货链，我们消耗的堆栈更少
+                 *   1.对于通过setFuture串起来的长的future链，我们消耗的堆栈更少
                  *   2.我们避免在取消链的每个级别分配取消对象。
                  *
-                 * 我们只能为TrustedFuture执行此操作，因为TrustedFuture.cancel是最终的，除了委托此方法之外什么都不做。
+                 * 我们只能为TrustedFuture执行此操作，因为TrustedFuture.cancel是final，除了委托此方法之外什么都不做。
                  */
               AbstractFuture<?> trusted = (AbstractFuture<?>) futureToPropagateTo;
               localValue = trusted.value;
               if (localValue == null | localValue instanceof SetFuture) {
                 abstractFuture = trusted;
-                continue; // loop back up and try to complete the new future
+                continue; // loop back up and try to complete the new future // 这也算是一个非递归的写法，只不过这个setFuture的委托链是单一的一条链，
+                // 不像listener一样是像二叉树一样的东西。见complete里的注释。
               }
             } else {
               // not a TrustedFuture, call cancel directly.
-              futureToPropagateTo.cancel(mayInterruptIfRunning);
+              futureToPropagateTo.cancel(mayInterruptIfRunning); // 注意，这个是方法调用，目前还在while循环里。
             }
           }
           break;
         }
         // obj changed, reread
-        localValue = abstractFuture.value;
+        localValue = abstractFuture.value; // 更新localValue。
         if (!(localValue instanceof SetFuture)) {
           // obj cannot be null at this point, because value can only change from null to non-null.
           // So if value changed (and it did since we lost the CAS), then it cannot be null and
           // since it isn't a SetFuture, then the future must be done and we should exit the loop
+          // 此时obj不能为null，因为value只能从null更改为非null。 因此，如果值发生了变化（并且自从我们丢失了CAS之后就发生了变化），那么它不能为空，
+          // 并且因为它不是SetFuture，那么必定是完成future了，我们应该退出循环
           break;
         }
       }
@@ -749,10 +757,14 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * Subclasses can override this method to implement interruption of the future's computation. The
    * method is invoked automatically by a successful call to {@link #cancel(boolean) cancel(true)}.
    *
+   * 子类可以覆盖此方法以实现对future计算的中断。 通过成功调用{@link #cancel（boolean）cancel（true）}自动调用该方法。
+   *
    * <p>The default implementation does nothing.
    *
    * <p>This method is likely to be deprecated. Prefer to override {@link #afterDone}, checking
    * {@link #wasInterrupted} to decide whether to interrupt your task.
+   *
+   * 此方法可能已弃用。 希望覆盖{@link #afterDone}，检查{@link #wasInterrupted}以决定是否中断您的任务。
    *
    * @since 10.0
    */
@@ -831,6 +843,10 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * {@code Future} may have previously been set asynchronously, in which case its result may not be
    * known yet. That result, though not yet known, cannot be overridden by a call to a {@code set*}
    * method, only by a call to {@link #cancel}.
+   * 设置此{@code Future}的失败结果，除非此{@code Future}已被取消或设置（包括{@linkplain #setFuture 异步设置}）。
+   * 当对此方法的调用返回时，{@code Future}保证为{@linkplain #isDone done} <b>仅当</ b>调用被接受时（在这种情况下它返回{@code true}）。
+   * 如果它返回{@code false}，则{@code Future}可能先前已异步设置，在这种情况下，其结果可能尚未知晓。
+   * 这个结果虽然还不知道，但只能通过调用{@link #cancel}来重写，不能调用{@code set *}方法重写。
    *
    * @param throwable the exception to be used as the failed result
    * @return true if the attempt was accepted, completing the {@code Future}
@@ -869,7 +885,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * Future}.
    *
    * <p>如果{@code setFuture（delegate）}调用被接受了，并且稍后取消此{@code Future}，则取消将传播到{@code delegate}。
-   * 此外，任何取消操作后的任何{@code setFuture}调用都会将取消传播到所提供的{@code Future}。（这个的实现见setFuturn方法的最后面）
+   * 此外，任何取消操作后的任何{@code setFuture}调用都会将取消传播到所提供的{@code Future}。（这个的实现见setFuturn方法的最后面，
+   * 这里的传播时指要设置时发现已被取消，就直接传播到参数future，而cancel方法里的传播动作则是在setFuture后引起的传播。）
    *
    * <p>Note that, even if the supplied future is cancelled and it causes this future to complete,
    * it will never trigger interruption behavior. In particular, it will not cause this future to
@@ -1077,6 +1094,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   /**
    * If this future has been cancelled (and possibly interrupted), cancels (and possibly interrupts)
    * the given future (if available).
+   * 如果此future已取消（并可能中断），则取消（并可能中断）给定的future（如果可用）。
    */
   final void maybePropagateCancellationTo(@Nullable Future<?> related) {
     if (related != null & isCancelled()) {
@@ -1137,10 +1155,12 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       } catch (RuntimeException e) {
         // Don't call getMessage or toString() on the exception, in case the exception thrown by the
         // subclass is implemented with bugs similar to the subclass.
+        // 不要在异常上调用getMessage或toString（），以防子类抛出的异常是由于子类的bug造成的。
         pendingDescription = "Exception thrown from implementation: " + e.getClass();
       }
       // The future may complete during or before the call to getPendingToString, so we use null
       // as a signal that we should try checking if the future is done again.
+      // future可能在调用getPendingToString期间或之前完成，因此我们使用null作为信号，我们应该尝试再次检查future是否完成。
       if (!isNullOrEmpty(pendingDescription)) {
         builder.append("PENDING, info=[").append(pendingDescription).append("]");
       } else if (isDone()) {
@@ -1154,6 +1174,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
   /**
    * Provide a human-readable explanation of why this future has not yet completed.
+   * 提供一个人类可读的解释，说明为什么这个future还没有完成。
    *
    * @return null if an explanation cannot be provided because the future is done.
    * @since 23.0
@@ -1172,7 +1193,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
   private void addDoneString(StringBuilder builder) {
     try {
-      V value = getDone(this);
+      V value = getDone(this); // 这个是Futures里的方法
       builder.append("SUCCESS, result=[").append(userObjectToString(value)).append("]");
     } catch (ExecutionException e) {
       builder.append("FAILURE, cause=[").append(e.getCause()).append("]");
@@ -1189,6 +1210,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     // This is however only partial protection though since it only detects self loops.  We could
     // detect arbitrary cycles using a thread local or possibly by catching StackOverflowExceptions
     // but this should be a good enough solution (it is also what jdk collections do in these cases)
+    // 这是人们通过set / setFuture创建周期时的一些基本递归检测
+    //
+    //然而，这只是部分保护，因为它只检测自循环。 我们可以使用本地线程或可能通过捕获StackOverflowExceptions来检测任意循环，但这应该是一个足够好的解决方案（它也是jdk集合在这些情况下所做的）
     if (o == this) {
       return "this future";
     }
@@ -1198,6 +1222,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   /**
    * Submits the given runnable to the given {@link Executor} catching and logging all {@linkplain
    * RuntimeException runtime exceptions} thrown by the executor.
+   *
+   * 将给定的runnable提交给给定的{@link Executor}捕获并记录执行程序抛出的所有{@linkplain RuntimeException 运行时异常}。
    */
   private static void executeListener(Runnable runnable, Executor executor) {
     try {
@@ -1206,6 +1232,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       // Log it and keep going -- bad runnable and/or executor. Don't punish the other runnables if
       // we're given a bad one. We only catch RuntimeException because we want Errors to propagate
       // up.
+      // 记录并继续 - 糟糕的runnable和/或executor。 如果我们被给予一个坏的，那么不要惩罚其他的runnables。
+      // 我们只捕获RuntimeException，因为我们希望Errors传播。
       log.log(
           Level.SEVERE,
           "RuntimeException while executing runnable " + runnable + " with executor " + executor,
