@@ -392,6 +392,9 @@ public final class MoreExecutors {
   /**
    * 注意：java中的Executor是异步计算框架（在引入CompletableFuture后变成异步编程框架），而Thread才是另起线程去执行程序的，不要把Executor与Thread给弄混了。
    * 见上面的注释： Returns an {@link Executor} that runs each task in the thread that invokes {@link Executor#execute execute}, as in {@link CallerRunsPolicy}.
+   *
+   * Java多线程学习笔记（二）——Executor,Executors,ExecutorService比较：https://www.cnblogs.com/love-Stefanie/p/6728228.html
+   * Java程序员必备知识-多线程框架Executor详解：https://www.cnblogs.com/fengsehng/p/6048610.html
    */
   /** See {@link #directExecutor} for behavioral notes. */
   private enum DirectExecutor implements Executor {

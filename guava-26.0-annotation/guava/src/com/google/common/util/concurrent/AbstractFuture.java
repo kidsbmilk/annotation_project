@@ -820,7 +820,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * 如果它返回{@code false}，则{@code Future}可能先前已异步设置，在这种情况下，其结果可能尚未知晓。
    * 这个结果虽然还不知道，但只能通过调用{@link #cancel}来调用{@code set *}方法。
    *
-   * 在一个任务执行完后，就会调用这个set方法去设置future的结果。
+   * 在一个任务执行完后，就会调用这个set方法去设置future的结果。比如：TrustedListenableFutureTask.run -> InterruptibleTask.run ->
+   * TrustedListenableFutureTask.afterRanInterruptibly里会调用set
    *
    * @param value the value to be used as the result
    * @return true if the attempt was accepted, completing the {@code Future}
@@ -938,6 +939,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
           }
           // Note: The only way this CAS could fail is if cancel() has raced with us. That is ok.
           // 注意：此CAS失败的唯一方法是cancel（）与我们竞争。 那没问题。
+          // 这里只所以说中唯一的可能竞争的方法是cancel，是因为上面已经用cas成功设置value了，所以其他set方法是不可用的，只有cancel可能重写这个value字段。见此方法前的注释。
           boolean unused = ATOMIC_HELPER.casValue(this, valueToSet, failure);
         }
         return true;

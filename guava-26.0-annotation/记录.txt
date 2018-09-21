@@ -44,6 +44,8 @@ guava concurrent设置思想很超前，想实现的功能非常酷炫，能极�
 
 要设计一个好的并发模型太难了，慢慢学习吧。
 
+这个guava有开发jdk的人员参与，比如：Doug Lea。
+
 源码里的链接：
 https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html#jls-17.4.5
 https://github.com/google/guava/wiki/ListenableFutureExplained
