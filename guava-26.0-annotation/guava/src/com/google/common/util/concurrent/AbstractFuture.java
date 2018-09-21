@@ -212,7 +212,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    */
   /** Waiter links form a Treiber stack, in the {@link #waiters} field. */
   private static final class Waiter {
-    static final Waiter TOMBSTONE = new Waiter(false /* ignored param */);
+    static final Waiter TOMBSTONE = new Waiter(false /* ignored param */); // tombstone有铭牌的意思，相当于一个标记，Waiter与Listener类中都有这个。
 
     volatile @Nullable Thread thread; // 注意：是volatile类型。
     volatile @Nullable Waiter next; // 注意：是volatile类型。
@@ -305,7 +305,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   // 而这里没有原子化更新Listener里的变量的域，所以不需要。
   // 在Waiter中，原子化更新域是多作的，见那里的注释，可以改进一下。
   private static final class Listener {
-    static final Listener TOMBSTONE = new Listener(null, null);
+    static final Listener TOMBSTONE = new Listener(null, null); // tombstone有铭牌的意思，相当于一个标记，Waiter与Listener类中都有这个。
     final Runnable task;
     final Executor executor;
 
@@ -447,13 +447,16 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    *    *响应中断
    *    *如果您不打算使用park操作，请不要创建Waiter节点，这有助于减少waiters队列上的争用。
    *    *将在#value变为非null /非SetFuture时定义Future完成。
-   *    *当waiters字段包含TOMBSTONE Timed Get时，可以观察到Future完成情况。
+   *    *当waiters字段包含TOMBSTONE时，可以观察到Future完成情况。（Waiter与Listener类里都有个TOMBSTONE字段）
+   *
+   *  Timed Get
    *    需要考虑一些设计约束
-   *    *我们希望对小超时做出响应，unpark（）具有非平凡的延迟开销（我在64位Linux系统上观察到12个微处理器唤醒停放的线程）。因此，如果超时很小，我们不应该park（）。这需要与cpu的自旋开销进行折衷，因此我们使用SPIN_THRESHOLD_NANOS，这是AbstractQueuedSynchronizer用于类似目的的。
+   *    *我们希望对小超时做出响应，unpark（）具有非平凡的延迟开销（我在64位Linux系统上观察到12个微处理器唤醒停放的线程）。因此，如果超时很小，我们不应该park（）。
+   *        这需要与cpu的自旋开销进行折衷，因此我们使用SPIN_THRESHOLD_NANOS，这是AbstractQueuedSynchronizer用于类似目的的。
    *    *我们想要在0的超时时间内合理地行事
    *    *我们对完成的响应速度比超时更快。这是因为parkNanos依赖于系统调度，因此我们可能会错过我们的截止日期，或者unpark（）可能会被延迟，因此即使我们没有超时，
-   * 也会因为unpark()被延迟而超时。为了比较，FutureTask表示任务完成，而AQS是非确定性的（取决于waiter在队列中的位置）。如果我们想严格要求它，
-   * 我们可以将unpark（）时间存储在Waiter节点中，我们可以使用它来决定我们是否在取消停放之前超时。
+   *        也会因为unpark()被延迟而超时。为了比较，FutureTask表示任务完成，而AQS是非确定性的（取决于waiter在队列中的位置）。如果我们想严格要求它，
+   *        我们可以将unpark（）时间存储在Waiter节点中，我们可以使用它来决定我们是否在取消停放之前超时。
    */
 
   /**
@@ -461,6 +464,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    *
    * <p>The default {@link AbstractFuture} implementation throws {@code InterruptedException} if the
    * current thread is interrupted during the call, even if the value is already available.
+   * AbstractFuture的默认实现中如果当前线程被中断了则抛出InterruptedException，即使当前已经得到value了，也会抛出InterruptedException。
    *
    * @throws CancellationException {@inheritDoc}
    */
