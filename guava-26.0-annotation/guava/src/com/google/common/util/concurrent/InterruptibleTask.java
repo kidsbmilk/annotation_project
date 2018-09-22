@@ -47,6 +47,8 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
   // The thread executing the task publishes itself to the superclass' reference and the thread
   // interrupting sets DONE when it has finished interrupting.
   // 执行任务的线程将自己发布到超类的引用，线程中断在完成中断时设置DONE。
+  // 下面这个两量是用于表示线程是否中断的，如果是DONE，则表示中断了，如果是INTERRUPTING，则是正在设置中断中。
+  // 这两个量设置在父类AtomicReference的volatile类型的value字段里。
   private static final Runnable DONE = new DoNothingRunnable();
   private static final Runnable INTERRUPTING = new DoNothingRunnable();
 
@@ -84,15 +86,25 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
       error = t;
     } finally {
       // Attempt to set the task as done so that further attempts to interrupt will fail.
-      if (!compareAndSet(currentThread, DONE)) {
+      // 尝试将任务设置为已完成，以使后面尝试中断的操作失败。
+      if (!compareAndSet(currentThread, DONE)) { // 见这个变量的注释。
         // If we were interrupted, it is possible that the interrupted bit hasn't been set yet. Wait
         // for the interrupting thread to set DONE. See interruptTask().
         // We want to wait so that we don't interrupt the _next_ thing run on the thread.
         // Note: We don't reset the interrupted bit, just wait for it to be set.
         // If this is a thread pool thread, the thread pool will reset it for us. Otherwise, the
         // interrupted bit may have been intended for something else, so don't clear it.
-        while (get() == INTERRUPTING) {
-          Thread.yield();
+        // 如果我们被中断，则可能尚未设置被中断的位。 等待中断线程设置DONE。 请参阅interruptTask（）。
+        // 我们要等待当前任务中断完成，以便我们不会错误地中断此线程上后续运行的_next_任务。（这个翻译一定要准确，非常关键！！！）
+        // 注意：我们不会重置被中断的位，只需等待它被设置即可。
+        // 如果这是一个线程池线程，则线程池将为我们重置它。 否则，被中断的位可能是用于其他的东西，所以不要清除它。
+
+        // 具体执行中断的操作在下面的interruptTask()中。
+        while (get() == INTERRUPTING) { // 见这个变量的注释。
+          Thread.yield(); // 让出cpu，等待线程被设置为中断状态。（注意：不要把java中的Thread对象与cpu中的执行线程搞混了，
+          // java中的Thread对象是映射到cpu中的执行线程上去运行的。
+          // 而任务是分配在Thread对象上执行的，所以一般可以把Thread对象看成cpu中的执行线程。
+          // 这里只是此Thread对象让出cpu，如果此Thread上绑定了多个任务，则这几个任务都让出cpu了）
         }
         /*
          * TODO(cpovirk): Clear interrupt status here? We currently don't, which means that an
@@ -115,12 +127,16 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
   /**
    * Do interruptible work here - do not complete Futures here, as their listeners could be
    * interrupted.
+   * 在这里做可中断的工作 - 不要在这里完成future，因为他们的listener可能会被打断。
    */
   abstract T runInterruptibly() throws Exception;
 
   /**
    * Any interruption that happens as a result of calling interruptTask will arrive before this
    * method is called. Complete Futures here.
+   * 由于调用interruptTask而发生的任何中断都将在调用此方法之前到达。 在这里完成future。
+   *
+   * 可以看下TrustedFutureInterruptibleAsyncTask.afterRanInterruptibly以及TrustedFutureInterruptibleTask.afterRanInterruptibly里的实现。
    */
   abstract void afterRanInterruptibly(@Nullable T result, @Nullable Throwable error);
 
@@ -128,11 +144,13 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
     // Since the Thread is replaced by DONE before run() invokes listeners or returns, if we succeed
     // in this CAS, there's no risk of interrupting the wrong thread or interrupting a thread that
     // isn't currently executing this task.
-      // 由于在run（）调用侦听器或返回之前，Thread被DONE替换，如果我们在此CAS中成功，则不存在中断错误线程或中断当前未执行此任务的线程的风险。
-    Runnable currentRunner = get();
-    if (currentRunner instanceof Thread && compareAndSet(currentRunner, INTERRUPTING)) {
-      ((Thread) currentRunner).interrupt();
-      set(DONE);
+    // 由于Thread是在run()调用侦听器或返回之前被替换为DONE（这里是在考虑interruptTask()被调用的时机），
+    // 所以，如果我们在此CAS中成功，则不存在中断错误线程或中断当前未执行此任务的线程的风险。
+    Runnable currentRunner = get(); // 得到AtomicReference里保存的值。在run()方法里会设置这个值。
+    if (currentRunner instanceof Thread && compareAndSet(currentRunner, INTERRUPTING)) { // 这个设置AtomicReference里值。
+      ((Thread) currentRunner).interrupt(); // 这个才是真正的中断线程（其实是中断线程上当前在执行的任务，
+      // 为了防止错误中断此线程上执行的其他任务，run方法里会让出cpu循环等待，见run里的实现。
+      set(DONE); // 这个设置AtomicReference里值，表明InterruptibleTask中断标记设置完成。
     }
   }
 
