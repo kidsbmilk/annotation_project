@@ -950,9 +950,11 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
           // Note: The only way this CAS could fail is if cancel() has raced with us. That is ok.
           // 注意：此CAS失败的唯一方法是cancel（）与我们竞争。 那没问题。
           // 这里只所以说中唯一的可能竞争的方法是cancel，是因为上面已经用cas成功设置value了，所以其他set方法是不可用的，只有cancel可能重写这个value字段。见此方法前的注释。
+          // 这里只所以失败也没问题是因为：上面要设置addListener，出现了异常，这里要设置出错的异常，而由于cancel的竞争导致设置出错异常失败，
+          // 反正addListener没设置成功同时cancel设置取消了，则效果上没什么问题。
           boolean unused = ATOMIC_HELPER.casValue(this, valueToSet, failure);
         }
-        return true;
+        return true; // 到这里时，value为SetFuture、Cancellation、Failure三者中的一个。
       }
       localValue = value; // we lost the cas, fall through and maybe cancel
     }
