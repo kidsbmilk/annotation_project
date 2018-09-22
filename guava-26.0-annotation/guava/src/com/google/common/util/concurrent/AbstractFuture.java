@@ -592,7 +592,9 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    */
   @CanIgnoreReturnValue
   @Override
-  public V get() throws InterruptedException, ExecutionException {
+  public V get() throws InterruptedException, ExecutionException { // get方法是获取future的结果，可能需要调用park操作阻塞获取线程，
+    // 所以可能会增加Waiter。
+    // 而
     if (Thread.interrupted()) {
       throw new InterruptedException();
     }
@@ -924,6 +926,12 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
         // 监听器负责调用completeWithFuture，directExecutor是合适的，因为我们所做的就是解包一个完成的future，这是非常快的操作。
         try {
           future.addListener(valueToSet, directExecutor()); // 这个是MoreExecutors里的方法
+          // 当future完成时，就会去执行valueToSet（也是一个listener）里的run方法，然后设置this的value值。
+          // 上面是future主动完成，然后通过this的，如果future取消了，不会导致this的中断方法的调用，见setFuture前面的方法注释。
+          // 这个在this上调用setFuture后，只能再去调用cancel方法，而不能再次调用set方法，见setFuture前面的方法注释。
+          // （其实这个SetFuture值，也算是this的一种完成状态，只不过最终的正常结果通知是由future完成后调用listener，
+          // 然后调用SetFuture里的run方法最终完成this的value值的设置。）
+          // 如果this上调用cancel方法，则是this主动了，然后cancel会传播到future上，见setFuture前面的方法注释。
         } catch (Throwable t) {
           // addListener has thrown an exception! SetFuture.run can't throw any exceptions so this
           // must have been caused by addListener itself. The most likely explanation is a
