@@ -381,7 +381,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
     @Override
     public void run() {
-      if (owner.value != this) { // 这个value相当于把多个future串起来，而这里不等于，表示没串联关系，不需要处理。
+      if (owner.value != this) { // 目的是为了判断future是否取消了，complete有类似的判断逻辑。
         // nothing to do, we must have been cancelled, don't bother inspecting the future.
         return;
       }
@@ -1050,7 +1050,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
           // 因为无法将executor传递给setFuture，因此用户无法通过自己执行此操作来破坏链。
           // 如果有人编写递归的Futures.transformAsync转换器，这也是很常见的。
           future = setFuture.owner;
-          if (future.value == setFuture) { // 这里的判断很自然，跟SetFuture.run里的判断一样。
+          if (future.value == setFuture) { // 目的是为了判断future是否取消了，跟SetFuture.run里的作用一样。
             Object valueToSet = getFutureValue(setFuture.future);
             if (ATOMIC_HELPER.casValue(future, setFuture, valueToSet)) { // 注意这个future，如果这里操作成功，则这个future算是完成了，
               // 然后开始跳到外层去继续处理此future上的waiters以及listener。注意：在处理这个future时，并不会丢弃这个future所属的setFuture所属的listener后面的listener，
