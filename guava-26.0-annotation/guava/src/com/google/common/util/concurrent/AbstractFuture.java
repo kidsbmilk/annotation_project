@@ -1006,8 +1006,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
     } else {
       // Otherwise calculate valueToSet by calling .get()
       try {
-        Object v = getDone(future); // 这个是Futures里的方法。这个方法可能会阻塞线程，
-        // 在具体实现中是先检查是否已完成的，如果调用得当，是不会阻塞线程的。
+        Object v = getDone(future); // 这个是Futures里的方法，在具体实现中是先检查是否已完成的，是不会阻塞线程的。
         valueToSet = v == null ? NULL : v;
       } catch (ExecutionException exception) { // 这些异常，见getDone里的方法注释。
         valueToSet = new Failure(exception.getCause());
