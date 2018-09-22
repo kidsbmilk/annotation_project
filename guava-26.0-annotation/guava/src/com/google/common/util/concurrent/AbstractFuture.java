@@ -511,6 +511,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
               LockSupport.parkNanos(this, remainingNanos); // 这个是阻塞在this这个对象上，parkNanos内部会有当前线程，见其实现。
               // Check interruption first, if we woke up due to interruption we need to honor that.
               if (Thread.interrupted()) { // 对Thread.interrupt()方法很详细的介绍：https://blog.csdn.net/yonghumingshishenme/article/details/6285259
+                // 理解java线程的中断(interrupt)：https://blog.csdn.net/canot/article/details/51087772
+                // https://www.cnblogs.com/bingscode/p/6211837.html：https://www.cnblogs.com/bingscode/p/6211837.html
                 removeWaiter(node); // park操作已结束，所以移除这个node。
                 throw new InterruptedException();
               }
