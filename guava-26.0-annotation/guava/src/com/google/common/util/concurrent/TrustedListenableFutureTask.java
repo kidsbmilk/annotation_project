@@ -148,6 +148,7 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
     final boolean isDone() {
       return TrustedListenableFutureTask.this.isDone(); // 注意：这里用到了TrustedListenableFutureTask.this，此类是TrustedListenableFutureTask的内部类，它要调用TrustedListenableFutureTask的isDone方法，所以这样写了，
         // 先取出当前的实例，然后调用其isDone方法。
+      // 注意：这里这所以通过this来访问外部类的isDone，是因为当前类中也有个isDone。
     }
 
     @Override
@@ -159,8 +160,9 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
     void afterRanInterruptibly(V result, Throwable error) {
       if (error == null) {
         TrustedListenableFutureTask.this.set(result);
+        // 注意：这里这所以通过this来访问外部类的set，是因为当前类中也有个set，因为InterruptibleTask继承自AtomicReference。
       } else {
-        setException(error);
+        setException(error); // 访问外部类中的方法，此方法是外部类的父类AbstractFuture中的。
       }
     }
 
