@@ -944,7 +944,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
           // 如果this上调用cancel方法，则是this主动了，然后cancel会传播到future上，见setFuture前面的方法注释。
 
           // 更新注释：这个directExecutor()好像没有用了，见SetFuture.run方法的注释以及complete方法里的注释。
-          
+
         } catch (Throwable t) {
           // addListener has thrown an exception! SetFuture.run can't throw any exceptions so this
           // must have been caused by addListener itself. The most likely explanation is a
