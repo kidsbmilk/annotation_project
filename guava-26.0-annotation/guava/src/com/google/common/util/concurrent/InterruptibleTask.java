@@ -46,6 +46,7 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
   }
   // The thread executing the task publishes itself to the superclass' reference and the thread
   // interrupting sets DONE when it has finished interrupting.
+  // 执行任务的线程将自己发布到超类的引用，线程中断在完成中断时设置DONE。
   private static final Runnable DONE = new DoNothingRunnable();
   private static final Runnable INTERRUPTING = new DoNothingRunnable();
 
@@ -56,6 +57,16 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
      * might be cancelled before we set the runner thread. That would make it impossible to
      * interrupt, yet it will still run, since interruptTask will leave the runner value null,
      * allowing the CAS below to succeed.
+     *
+     * 在检查isDone（）之前设置runner线程。 如果我们首先检查isDone（），则在设置runner线程之前可能会取消该任务。
+     * 这将使得它无法中断，但它仍将运行，因为interruptTask将使runner值保持为null，从而允许下面的CAS成功。
+     *
+     * 注意：这里才是开始执行提交的任务的地方，isDone中只可能出现两种情况：任务取消或者任务还没完成。
+     *
+     * 如果先检查isDone，则有可能检查的时候任务没有取消，但是设置cas前任务取消了，那样的话，cas依然会成功，而且run为true,
+     * task依然会执行，只是最后task要设置结果时，会设置不成功。这样会让程序做无用功，所以是先设置cas，然后再检查是否已取消。
+     *
+     * 如果cas时任务也没取消，在任务运行中取消了，那么就要看AbstractFuture.cancel里的实现了。
      */
     Thread currentThread = Thread.currentThread();
     if (!compareAndSet(null, currentThread)) {

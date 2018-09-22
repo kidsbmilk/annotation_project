@@ -42,6 +42,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * 明白类间的继承与实现关系后，再去自己造轮子就知道流程了，就能更好地理解实现细节了。
  */
+
+/**
+ * 明白了InterruptibleTask.isDone与AbstractFuture.isDone的关系了。
+ * 代码关系为:比如InterruptibleTask的实现类TrustedFutureInterruptibleTask，由于这个实现类为TrustedListenableFutureTask的私有内部类，而这个私有内部类的idDone的实现是委托给外部类（也即TrustedListenableFutureTask，是一个AbstractFuture.TrustedFuture类型），所以最终的InterruptibleTask.isDone其实就是AbstractFuture.isDone。这是代码上的关系。
+ * 设计思想上的关系是：task描述了一个任务，而这个任务在执行时会返回一个future给调用者，所以Task的完成与否与future的完成与否是等价的。
+ *
+ * 整体流程是这样的：
+ * MoreExecutors.listeningDecorator -> ListeningDecorator，继承自AbstractListeningExecutorService，覆盖了execute方法 -> 在用户submit任务时，AbstractListeningExecutorService重写了newTaskFor，并且AbstractListeningExecutorService的submit是转到了AbstractExecutorService里的submit，AbstractListeningExecutorService.newTaskFor引出TrustedFutureInterruptibleTask
+ * 这里说一下TrustedListenableFutureTask与TrustedFutureInterruptibleTask的关系，TrustedFutureInterruptibleTask是TrustedListenableFutureTask的私有内部类，TrustedListenableFutureTask中持有TrustedFutureInterruptibleTask对象。
+ * TrustedListenableFutureTask的run最终转到TrustedFutureInterruptibleTask的run方法，而TrustedFutureInterruptibleTask的run是继承自InterruptibleTask的。
+ * ，TrustedFutureInterruptibleTask的isDone会转到调用TrustedListenableFutureTask的isDone（继承自AbstractFuture），TrustedFutureInterruptibleTask的afterRanInterruptibly会调用TrustedListenableFutureTask的set方法（继承自AbstractFuture）。
+ *
+ * 这样，在TrustedFutureInterruptibleTask执行完后会调用AbstractFuture的结果，并处理等待线程以及监听器。
+ */
 @GwtCompatible
 class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
     implements RunnableFuture<V> {
@@ -88,7 +102,7 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
   public void run() {
     InterruptibleTask localTask = task;
     if (localTask != null) {
-      localTask.run(); // 这个里会调用isDone，也是InterruptibleTask需要实现的方法。
+      localTask.run(); // 这个里会调用isDone，runInterruptibly，afterRanInterruptibly，也是InterruptibleTask需要实现的方法。
     }
     /*
      * In the Async case, we may have called setFuture(pendingFuture), in which case afterDone()
