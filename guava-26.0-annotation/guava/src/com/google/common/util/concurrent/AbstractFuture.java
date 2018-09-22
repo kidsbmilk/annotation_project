@@ -379,6 +379,14 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
       this.future = future;
     }
 
+    /**
+     * 这个run方法应该是没有调用到，为什么会出现在这里呢？
+     * 一种猜测：这个方法是老版本，以前在用，就是处理到complete时，
+     * 使用额外的executor来执行此SetFuture.run来设置原future的value。
+     * 具体见setFuture方法里，会将SetFuture封闭为listener加入到监听器链里。
+     * 现在，complete里特意检测了一个task是否为SetFuture，然后做非递归处理了，
+     * 见complete里的实现。
+     */
     @Override
     public void run() {
       if (owner.value != this) { // 目的是为了判断future是否取消了，complete有类似的判断逻辑。
@@ -1039,7 +1047,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
         Listener curr = next;
         next = next.next; // 注意这个next!!!
         Runnable task = curr.task;
-        if (task instanceof SetFuture) {
+        if (task instanceof SetFuture) { // 具体见setFuture方法里，会将SetFuture封闭为listener加入到监听器链里。
           SetFuture<?> setFuture = (SetFuture<?>) task;
           // We unwind setFuture specifically to avoid StackOverflowErrors in the case of long
           // chains of SetFutures
