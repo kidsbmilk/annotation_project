@@ -44,7 +44,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @CanIgnoreReturnValue
 @GwtIncompatible
 public abstract class AbstractListeningExecutorService extends AbstractExecutorService
-    implements ListeningExecutorService {
+    implements ListeningExecutorService { // AbstractExecutorService与ListeningExecutorService具有公共的接口：ExecutorService
+  // 这里其实可以不需要ListeningExecutorService，因为其中的方法的实现也转到AbstractExecutorService里的实现。
+  // 这时这所以多出一个ListeningExecutorService，起到标识作用，指明实现此接口的类在使用submit时会返回ListenableFuture，
+  // 这也是面向接口编程的基本常识吧。
 
   /** @since 19.0 (present with return type {@code ListenableFutureTask} since 14.0) */
   @Override

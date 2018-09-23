@@ -58,7 +58,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 @GwtCompatible
 class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
-    implements RunnableFuture<V> {
+    implements RunnableFuture<V> { // java没有多重继承，这个TrustedListenableFutureTask要描述一个任务，
+  // 同时要具有对ListenableFuture的相关操作功能，所以，这里的实现方式是继承AbstractFuture.TrustedFuture，
+  // 同时，实现RunnableFuture，将RunnableFuture.run方法转到TrustedListenableFutureTask持有的InterruptibleTask类型成员变量的run方法里。
+  // 算是明白这里的设计思想了。
+  // 注意：这里使用了内部类，可以加深对内部类的使用场景的理解。TrustedListenableFutureTask要持有InterruptibleTask类型的成员变量，
+  // 而这个成员变量类型只在TrustedListenableFutureTask里被使用了，所以，TrustedFutureInterruptibleTask以及
+  // TrustedFutureInterruptibleAsyncTask被设计为TrustedListenableFutureTask的私有内部类。
+  // 类似的还有，比如AbstractFutur中，AtomicHelper实现类的实现方式。
 
   static <V> TrustedListenableFutureTask<V> create(AsyncCallable<V> callable) { // 注意这是静态方法
     return new TrustedListenableFutureTask<V>(callable); // 这个是调用的非静态方法，最终转到带有是否中断状态的task上。
