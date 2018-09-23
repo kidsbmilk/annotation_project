@@ -99,6 +99,9 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * fallback}. {@link Function#apply} is not invoked until the primary input has failed, so if the
    * primary input succeeds, it is never invoked. If, during the invocation of {@code fallback}, an
    * exception is thrown, this exception is used as the result of the output {@code Future}.
+   * 返回{@code Future}，其结果取自此{@code Future}，或者，如果此{@code Future}失败并且抛出给定的{@code exceptionType}，则结果取自{@code fallback}。
+   * 在原始future失败之前，不会调用{@link Function#apply}，因此如果原始future成功，则永远不会调用它。 如果在调用{@code fallback}期间抛出异常，
+   * 则此异常将用作输出{@code Future}的结果。
    *
    * <p>Usage example:
    *
@@ -112,11 +115,16 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * <p>When selecting an executor, note that {@code directExecutor} is dangerous in some cases. See
    * the discussion in the {@link #addListener} documentation. All its warnings about heavyweight
    * listeners are also applicable to heavyweight functions passed to this method.
+   * 选择executor时，请注意{@code directExecutor}在某些情况下是危险的。
+   * 请参阅{@link #addListener}文档中的讨论。 关于重量级侦听器的所有警告也适用于传递给此方法的重量级函数。
    *
    * <p>This method is similar to {@link java.util.concurrent.CompletableFuture#exceptionally}. It
    * can also serve some of the use cases of {@link java.util.concurrent.CompletableFuture#handle}
    * and {@link java.util.concurrent.CompletableFuture#handleAsync} when used along with {@link
    * #transform}.
+   *
+   * <p>此方法类似于{@link java.util.concurrent.CompletableFuture＃exceptionally}。 当与{@link #transform}一起使用时，
+   * 它还可以提供{@link java.util.concurrent.CompletableFuture＃handle}和{@link java.util.concurrent.CompletableFuture＃handleAsync}的一些用例。
    *
    * @param exceptionType the exception type that triggers use of {@code fallback}. The exception
    *     type is matched against the input's exception. "The input's exception" means the cause of
