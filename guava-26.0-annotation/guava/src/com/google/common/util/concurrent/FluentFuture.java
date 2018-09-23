@@ -80,10 +80,12 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
 
   /**
    * Converts the given {@code ListenableFuture} to an equivalent {@code FluentFuture}.
-   *
+   * 将给定的{@code ListenableFuture}转换为等效的{@code FluentFuture}。
    * <p>If the given {@code ListenableFuture} is already a {@code FluentFuture}, it is returned
    * directly. If not, it is wrapped in a {@code FluentFuture} that delegates all calls to the
    * original {@code ListenableFuture}.
+   * <p>如果给定的{@code ListenableFuture}已经是{@code FluentFuture}，则会直接返回。
+   * 如果没有，它将被包含在{@code FluentFuture}中，该代理将所有调用委托给原始的{@code ListenableFuture}。
    */
   public static <V> FluentFuture<V> from(ListenableFuture<V> future) {
     return future instanceof FluentFuture
