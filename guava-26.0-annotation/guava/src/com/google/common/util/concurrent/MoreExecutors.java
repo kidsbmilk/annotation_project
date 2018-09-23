@@ -1010,6 +1010,7 @@ public final class MoreExecutors {
           }
           // otherwise it must have been thrown from a transitive call and the delegate runnable
           // should have handled it.
+          // 否则它必须从传递调用中抛出，并且委托runnable应该处理它。
         }
       }
     };
