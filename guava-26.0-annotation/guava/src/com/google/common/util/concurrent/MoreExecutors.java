@@ -975,8 +975,10 @@ public final class MoreExecutors {
   /**
    * Returns an Executor that will propagate {@link RejectedExecutionException} from the delegate
    * executor to the given {@code future}.
+   * 返回一个Executor，它将{@link RejectedExecutionException}从delegate传播到给定的{@code future}。
    *
    * <p>Note, the returned executor can only be used once.
+   * 这个返回的executor只能被使用一次。
    */
   static Executor rejectionPropagatingExecutor(
       final Executor delegate, final AbstractFuture<?> future) {
@@ -984,6 +986,7 @@ public final class MoreExecutors {
     checkNotNull(future);
     if (delegate == directExecutor()) {
       // directExecutor() cannot throw RejectedExecutionException
+      // 由于directExecutor()不会抛出RejectedExecutionException，所以就不像下面那样做拦截了，就直接返回了。
       return delegate;
     }
     return new Executor() {
