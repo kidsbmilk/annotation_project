@@ -56,12 +56,20 @@ import java.util.concurrent.TimeoutException;
  * need to adapt between {@code CompletableFuture} and {@code ListenableFuture}, consider <a
  * href="https://github.com/lukas-krecan/future-converter">Future Converter</a>.)
  *
+ * <p> {@code CompletableFuture}的用户可能想要继续使用{@code CompletableFuture}。
+ * {@code FluentFuture}是面向使用{@code ListenableFuture}、无法使用Java 8、或者想要比{@code CompletableFuture}拥有更专注API的人。
+ * （如果您需要在{@code CompletableFuture}和{@code ListenableFuture}之间进行适配，
+ * 请考虑<a href="https://github.com/lukas-krecan/future-converter"> Future Converter </a>。）
+ *
  * <h3>Extension</h3>
  *
  * If you want a class like {@code FluentFuture} but with extra methods, we recommend declaring your
  * own subclass of {@link ListenableFuture}, complete with a method like {@link #from} to adapt an
  * existing {@code ListenableFuture}, implemented atop a {@link ForwardingListenableFuture} that
  * forwards to that future and adds the desired methods.
+ *
+ * 如果你想要一个像{@code FluentFuture}这样的类但有额外的方法，我们建议你声明自己的{@link ListenableFuture}子类，
+ * 并使用类似{@link #from}的方法来修改现有的{@code ListenableFuture}， 基于{@link ForwardingListenableFuture}实现转发future并添加所需的方法。
  *
  * @since 23.0
  */
