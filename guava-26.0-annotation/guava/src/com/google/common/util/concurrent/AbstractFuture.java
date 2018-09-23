@@ -67,6 +67,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@ link #setFuture（ListenableFuture）}和{@link #setException（Throwable）}来设置计算结果的方法（注意这句话，是提供一种基于set以及setFuture的方法，而不是重写这两个方法）。
  * 子类也可以覆盖{@link #afterDone（）}，这将在将来完成时自动调用。子类应该很少覆盖其他方法。
  *
+ * 注意这里的说明，子类应该通过set方法设置一套设置计算结果的方法，这些set方法不对外公开的，是protected的。
+ * 具体的实现可以参考InterruptibleTask的实现类的代码。
+ *
  * @author Sven Mawson
  * @author Luke Sandberg
  * @since 1.0
