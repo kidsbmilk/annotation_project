@@ -978,7 +978,7 @@ public final class MoreExecutors {
    * 返回一个Executor，它将{@link RejectedExecutionException}从delegate传播到给定的{@code future}。
    *
    * <p>Note, the returned executor can only be used once.
-   * 这个返回的executor只能被使用一次。
+   * 这个返回的executor只能被使用一次，在实现上使用了一个状态量来记录是否使用过了。
    */
   static Executor rejectionPropagatingExecutor(
       final Executor delegate, final AbstractFuture<?> future) {
