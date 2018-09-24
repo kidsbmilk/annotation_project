@@ -70,3 +70,5 @@ java中volatile、synchronized和lock解析：https://blog.csdn.net/ztchun/artic
 二、循环检测future是否完成，效率非常低，会有一些延迟，没有guava这种通用的设计效率高。
 三、在设计上，这种方式应该由用户去基于异步框架实现它，只需要将自己创建的线程（池）作为监听器的执行线程（池）就可以了，来处理一些可能阻塞线程或者cpu密集的任务。
 四、等等。
+
+3、AbstractCatchingFuture中说字段不可见，要参考TimeoutFuture里的说明，是什么意思？
