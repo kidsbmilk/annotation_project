@@ -948,6 +948,14 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
           // 更新注释：这个directExecutor()好像没有用了，见SetFuture.run方法的注释以及complete方法里的注释。
 
+          // 注意：setFuture时，如果输入future还没有完成，
+          // 则只是将其vauleToSet加入输入future的监听器队列，而不会调用this这个future的complete，
+          // 只有等待输入future完成后，future.complete会通过valueToSet.run设置this这个future的结果（这个过程，
+          // 要看，AbstractFuture.complete里的实现。更新：因为AbstractFuture.complete里检测了SetFuture，
+          // 做非递归处理了，不需要使用valueToSet.run了，但是效果是一样的。）
+          // 然后才会调用this这个future的complete。
+          // 可以写个例子看看，比如使用FluentFuture.catchingAsync写个例子。
+
         } catch (Throwable t) {
           // addListener has thrown an exception! SetFuture.run can't throw any exceptions so this
           // must have been caused by addListener itself. The most likely explanation is a
