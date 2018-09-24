@@ -72,3 +72,5 @@ java中volatile、synchronized和lock解析：https://blog.csdn.net/ztchun/artic
 四、等等。
 
 3、AbstractCatchingFuture中说字段不可见，要参考TimeoutFuture里的说明，是什么意思？
+
+4、跟java8的异步计算框架对比一下。
