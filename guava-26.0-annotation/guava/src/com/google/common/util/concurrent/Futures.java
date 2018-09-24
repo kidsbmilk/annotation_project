@@ -316,6 +316,8 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    * fallback}, an exception is thrown, this exception is used as the result of the output {@code
    * Future}.
    *
+   * 这里的注释的翻译，见FluentFuture.catching那里的翻译。
+   *
    * <p>Usage example:
    *
    * <pre>{@code

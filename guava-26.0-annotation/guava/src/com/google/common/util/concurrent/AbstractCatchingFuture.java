@@ -37,6 +37,11 @@ abstract class AbstractCatchingFuture<V, X extends Throwable, F, T>
       Executor executor) {
     CatchingFuture<V, X> future = new CatchingFuture<>(input, exceptionType, fallback);
     input.addListener(future, rejectionPropagatingExecutor(executor, future));
+    // 注意：rejectionPropagatingExecutor的作用是，如果executor拒绝执行function，则设置future的结果为异常。
+    // 见rejectionPropagatingExecutor里的实现。
+
+    // 对于FluentFuture.catching操作来说，最重要的一步是将AbstractCatchingFuture安装在输入future的监听器里，
+    // 也就是input.addListener(...)，所以，AbstractCatchingFuture要实现Runnable接口。
     return future;
   }
 
