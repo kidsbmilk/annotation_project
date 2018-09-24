@@ -114,6 +114,17 @@ class TrustedListenableFutureTask<V> extends AbstractFuture.TrustedFuture<V>
     /*
      * In the Async case, we may have called setFuture(pendingFuture), in which case afterDone()
      * won't have been called yet.
+     *
+     * 在异步调用的情况下，我们可能已经调用了setFuture(pendignFuture)，在这种情况下，afterDone可能还没有被调用，
+     * 但是this.task已经被设置为null。所以，下面在afterDone中检测了一个task是否为null。
+     *
+     * 这个太严谨了！！！
+     * 对于非异步的情况，在调用setFuture时，会顺着执行complete，然后会调用afterDone，最后会调用下面的this.task = null;
+     * 如果是异步的情况，在调用setFuture后，可能结果还没好，会先执行下面的this.task = null，然后再执行afterDone。
+     * 所以，为了在任何情况下，最终都能将this.task设置为null，所以作者就在下面位置以及afterDone结尾都写上置null的语句了，
+     * 然后在afterDone里还判断了一个this.task是否为null。
+     *
+     * 这里的讨论在很多类中同样适用。
      */
     this.task = null;
   }

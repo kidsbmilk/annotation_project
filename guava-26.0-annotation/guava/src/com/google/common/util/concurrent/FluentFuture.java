@@ -213,6 +213,9 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * TimeoutException} wrapped in an {@link ExecutionException}) if the specified timeout expires.
    * If the timeout expires, not only will the output future finish, but also the input future
    * ({@code this}) will be cancelled and interrupted.
+   * 返回一个future，这个返回的future将所有操作都委托给this这个future，同时可能会提前超时返回，超时时间内timeout以及unit指定，
+   * 超时时，会抛出TimeoutException异常，但是这个是包装在ExecutionException里返回的（具体封装处见：AbstractFuture.getDoneValue里的代码）。
+   * 如果超时返回，则不仅会使返回的future结束，也会使输入future（即this future）被取消或者被中断。
    *
    * @param timeout when to time out the future
    * @param unit the time unit of the time parameter

@@ -647,6 +647,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
 
   /** Unboxes {@code obj}. Assumes that obj is not {@code null} or a {@link SetFuture}. */
   // 这个方法主要是在get方法里被调用，在调用这个方法之前会判断obj不为null，且不是SetFuture.
+  // getDoneValue与getFutureValue的不同之处，参考getFutureValue里的注释。
   private V getDoneValue(Object obj) throws ExecutionException {
     // While this seems like it might be too branch-y, simple benchmarking proves it to be
     // unmeasurable (comparing done AbstractFutures with immediateFuture)
@@ -997,6 +998,13 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    *
    * <p>This is approximately the inverse of {@link #getDoneValue(Object)}
    * 这与{@link #getDoneValue（Object）}大致相反。
+   *
+   * getFutureValue是从给定的future中得到其结果对象，这个对象有多种可能的值，见value上面的注释。
+   * 而getDoneValue同是从getFutureValue得到的对象中再解析出特定的结果，比如具体类型的值、抛出特定的异常等等。
+   *
+   * getDoneValue多是给外部线程获取最终结果用的，而getFutureValue的使用场景是在类内部获取给定的输入future的结果，以便用这个结果来设置此future的结果。
+   *
+   * 注意区别getFutureValue与SetFuture的不同，getFutureValue是在给定的future完成时取结果用的，而SetFuture是在给定的future没完成时临时当作此future的value结果使用的
    */
   private static Object getFutureValue(ListenableFuture<?> future) {
     Object valueToSet;

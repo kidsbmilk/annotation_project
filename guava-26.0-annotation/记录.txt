@@ -57,6 +57,10 @@ synachronized以及lock使得代码块既有原子性又有可见性。
 volatile与synchronized的区别：https://www.cnblogs.com/tf-Y/p/5266710.html
 java中volatile、synchronized和lock解析：https://blog.csdn.net/ztchun/article/details/60778950
 
+注意：
+1、TrustedListenableFutureTask.run里的讨论。
+
+
 问题：
 1、MoreExecutors中我知道后续的动作是如何通过ListenableFuture.addListener添加到AbstractFuture的listtners上的，但是不明白这些listener是何时以怎么样的方式被调用的？
 在使用addListener时，如果任务已经完成，则addListener里的新任务会立刻执行，但是，如果任务还没有完成，则addListener会放入listeners里等待任务完成，而任务完成后，listeners里的东西是
