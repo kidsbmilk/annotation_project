@@ -81,6 +81,7 @@ abstract class AbstractCatchingFuture<V, X extends Throwable, F, T>
     inputFuture = null;
 
     // For an explanation of the cases here, see the comments on AbstractTransformFuture.run.
+    // 有关此处案例的说明，请参阅AbstractTransformFuture.run上的注释。
     V sourceResult = null;
     Throwable throwable = null;
     try {
