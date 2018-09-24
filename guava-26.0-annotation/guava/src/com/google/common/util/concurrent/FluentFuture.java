@@ -87,7 +87,7 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * <p>如果给定的{@code ListenableFuture}已经是{@code FluentFuture}，则会直接返回。
    * 如果没有，它将被包含在{@code FluentFuture}中，该代理将所有调用委托给原始的{@code ListenableFuture}。
    */
-  public static <V> FluentFuture<V> from(ListenableFuture<V> future) {
+  public static <V> FluentFuture<V> from(ListenableFuture<V> future) { // 这个方法的用途，参考类前面的小例子。
     return future instanceof FluentFuture
         ? (FluentFuture<V>) future
         : new ForwardingFluentFuture<V>(future);
