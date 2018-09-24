@@ -53,6 +53,8 @@ abstract class AbstractCatchingFuture<V, X extends Throwable, F, T>
   /*
    * In certain circumstances, this field might theoretically not be visible to an afterDone() call
    * triggered by cancel(). For details, see the comments on the fields of TimeoutFuture.
+   * 在某些情况下，理论上这个字段在cancel（）触发的afterDone（）调用中可能不可见。
+   * 有关详细信息，请参阅TimeoutFuture字段的注释。
    */
   @Nullable ListenableFuture<? extends V> inputFuture;
   @Nullable Class<X> exceptionType;
