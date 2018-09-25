@@ -321,10 +321,13 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * Registers separate success and failure callbacks to be run when this {@code Future}'s
    * computation is {@linkplain java.util.concurrent.Future#isDone() complete} or, if the
    * computation is already complete, immediately.
+   * 给this这个future注册一个回调，包括成功回调方法以及失败回调方法，当this这个future完成后，
+   * 会执行回调里的方法，如果this这个future已经完成了，则回调会立即执行。
    *
    * <p>The callback is run on {@code executor}. There is no guaranteed ordering of execution of
    * callbacks, but any callback added through this method is guaranteed to be called once the
    * computation is complete.
+   * <p>回调在{@code executor}上运行。 执行回调的顺序没有任何保证，但是保证在计算完成后调用通过此方法添加的任何回调。
    *
    * <p>Example:
    *
@@ -343,13 +346,18 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * <p>When selecting an executor, note that {@code directExecutor} is dangerous in some cases. See
    * the discussion in the {@link #addListener} documentation. All its warnings about heavyweight
    * listeners are also applicable to heavyweight callbacks passed to this method.
+   * 选择executor时，请注意{@code directExecutor}在某些情况下是危险的。
+   * 请参阅{@link #addListener}文档中的讨论。 关于重量级侦听器的所有警告也适用于传递给此方法的重量级函数。
    *
    * <p>For a more general interface to attach a completion listener, see {@link #addListener}.
+   * <p>有关附加完成侦听器的更通用的接口，请参阅{@link #addListener}。
    *
    * <p>This method is similar to {@link java.util.concurrent.CompletableFuture#whenComplete} and
    * {@link java.util.concurrent.CompletableFuture#whenCompleteAsync}. It also serves the use case
    * of {@link java.util.concurrent.CompletableFuture#thenAccept} and {@link
    * java.util.concurrent.CompletableFuture#thenAcceptAsync}.
+   * <p>此方法类似于{@link java.util.concurrent.CompletableFuture＃whenComplete}和{@link java.util.concurrent.CompletableFuture＃whenCompleteAsync}。
+   * 它还提供了{@link java.util.concurrent.CompletableFuture＃thenAccept}和{@link java.util.concurrent.CompletableFuture＃thenAcceptAsync}的用例。
    *
    * @param callback The callback to invoke when this {@code Future} is completed.
    * @param executor The executor to run {@code callback} when the future completes.
