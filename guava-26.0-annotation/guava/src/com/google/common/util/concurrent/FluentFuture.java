@@ -275,6 +275,8 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * Returns a new {@code Future} whose result is derived from the result of this {@code Future}. If
    * this input {@code Future} fails, the returned {@code Future} fails with the same exception (and
    * the function is not invoked). Example usage:
+   * 返回一个新的{@code Future}，其结果派生自this{@code Future}的结果。 如果此输入{@code Future}失败，
+   * 则返回的{@code Future}将失败并返回相同的异常（并且不会调用该函数）。 用法示例：
    *
    * <pre>{@code
    * ListenableFuture<List<Row>> rowsFuture =
@@ -284,19 +286,27 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * <p>When selecting an executor, note that {@code directExecutor} is dangerous in some cases. See
    * the discussion in the {@link #addListener} documentation. All its warnings about heavyweight
    * listeners are also applicable to heavyweight functions passed to this method.
+   * 选择executor时，请注意{@code directExecutor}在某些情况下是危险的。
+   * 请参阅{@link #addListener}文档中的讨论。 关于重量级侦听器的所有警告也适用于传递给此方法的重量级函数。
    *
    * <p>The returned {@code Future} attempts to keep its cancellation state in sync with that of the
    * input future. That is, if the returned {@code Future} is cancelled, it will attempt to cancel
    * the input, and if the input is cancelled, the returned {@code Future} will receive a callback
    * in which it will attempt to cancel itself.
+   * <p>返回的{@code Future}尝试在取消状态上与输入future保持同步。 也就是说，如果返回的{@code Future}被取消，
+   * 它将尝试取消输入future，如果输入future被取消，返回的{@code Future}将收到一个回调函数，它将尝试取消它自己。
    *
    * <p>An example use of this method is to convert a serializable object returned from an RPC into
    * a POJO.
+   * <p>此方法的一个示例用法是将从RPC返回的可序列化对象转换为POJO。
    *
    * <p>This method is similar to {@link java.util.concurrent.CompletableFuture#thenApply} and
    * {@link java.util.concurrent.CompletableFuture#thenApplyAsync}. It can also serve some of the
    * use cases of {@link java.util.concurrent.CompletableFuture#handle} and {@link
    * java.util.concurrent.CompletableFuture#handleAsync} when used along with {@link #catching}.
+   * <p>此方法类似于{@link java.util.concurrent.CompletableFuture＃thenApply}和{@link java.util.concurrent.CompletableFuture＃thenApplyAsync}。
+   * 当与{@link #catching}一起使用时，它还可以提供{@link java.util.concurrent.CompletableFuture＃handle}和
+   * {@link java.util.concurrent.CompletableFuture＃handleAsync}的一些用例。
    *
    * @param function A Function to transform the results of this future to the results of the
    *     returned future.
