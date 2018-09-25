@@ -607,7 +607,7 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
   @Override
   public V get() throws InterruptedException, ExecutionException { // get方法是获取future的结果，可能需要调用park操作阻塞获取线程，
     // 所以可能会增加Waiter。
-    // 而
+    // 而Listener则是添加一个新的监听任务，等到future完成后自动执行。
     if (Thread.interrupted()) {
       throw new InterruptedException();
     }
