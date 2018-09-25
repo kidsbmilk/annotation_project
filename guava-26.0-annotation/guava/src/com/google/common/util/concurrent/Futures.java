@@ -494,6 +494,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    * Returns a new {@code Future} whose result is derived from the result of the given {@code
    * Future}. If {@code input} fails, the returned {@code Future} fails with the same exception (and
    * the function is not invoked). Example usage:
+   * 这里面的翻译，见FluentFuture.transform里的翻译。
    *
    * <pre>{@code
    * ListenableFuture<QueryResult> queryFuture = ...;
