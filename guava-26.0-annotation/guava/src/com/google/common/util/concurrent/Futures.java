@@ -604,6 +604,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    *
    * <p>Canceling this future will attempt to cancel all the component futures, and if any of the
    * provided futures fails or is canceled, this one is, too.
+   * 取消返回的future时，会取消输入的所有future，如果输入的future有任何一个取消了，则也取消这个返回的future。
    *
    * @param futures futures to combine
    * @return a future that provides a list of the results of the component futures

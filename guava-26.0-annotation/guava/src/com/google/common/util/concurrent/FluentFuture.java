@@ -296,6 +296,11 @@ public abstract class FluentFuture<V> extends GwtFluentFutureCatchingSpecializat
    * <p>返回的{@code Future}尝试在取消状态上与输入future保持同步。 也就是说，如果返回的{@code Future}被取消，
    * 它将尝试取消输入future，如果输入future被取消，返回的{@code Future}将收到一个回调函数，它将尝试取消它自己。
    *
+   * 保持同步的两个关键点是：
+   * 一、如果输入future取消了，则在run方法里设置返回future的取消，见AbstractTransformFuture.run
+   * 二、如果返回future取消了，则在afterDone里设置返回future的取消，最关键的是AbstractFuture.maybePropagateCancellationTo的调用，
+   * 见AbstractTransformFuture.afterDone。
+   *
    * <p>An example use of this method is to convert a serializable object returned from an RPC into
    * a POJO.
    * <p>此方法的一个示例用法是将从RPC返回的可序列化对象转换为POJO。

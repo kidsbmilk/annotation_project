@@ -1139,6 +1139,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * If this future has been cancelled (and possibly interrupted), cancels (and possibly interrupts)
    * the given future (if available).
    * 如果此future已取消（并可能中断），则取消（并可能中断）给定的future（如果可用）。
+   *
+   * 见FluentFuture.transform方法的注释。
    */
   final void maybePropagateCancellationTo(@Nullable Future<?> related) {
     if (related != null & isCancelled()) {
