@@ -83,6 +83,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * 见AbstractFuture的类注释。
+ *
+ * FluentFuture与Futures的区别，两者的区别只是前者用于实现流式调用，后者是大杂烩，前者用到后者的方法了。
  */
 @Beta
 @GwtCompatible(emulated = true)

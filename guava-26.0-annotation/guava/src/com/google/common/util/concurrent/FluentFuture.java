@@ -71,6 +71,7 @@ import java.util.concurrent.TimeoutException;
  * 如果你想要一个像{@code FluentFuture}这样的类但有额外的方法，我们建议你声明自己的{@link ListenableFuture}子类，
  * 并使用类似{@link #from}的方法来修改现有的{@code ListenableFuture}， 基于{@link ForwardingListenableFuture}实现转发future并添加所需的方法。
  *
+ * FluentFuture与Futures的区别，两者的区别只是前者用于实现流式调用，后者是大杂烩，前者用到后者的方法了。
  * @since 23.0
  */
 @Beta
