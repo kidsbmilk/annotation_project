@@ -43,6 +43,8 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
   /*
    * In certain circumstances, this field might theoretically not be visible to an afterDone() call
    * triggered by cancel(). For details, see the comments on the fields of TimeoutFuture.
+   * 在某些情况下，理论上这个字段在cancel（）触发的afterDone（）调用中可能不可见。
+   * 有关详细信息，请参阅TimeoutFuture字段的注释。
    */
   private @Nullable RunningState runningState;
 
@@ -115,6 +117,9 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
      * futures are already complete, we would not initialize the subclass before calling {@link
      * #handleOneInputDone}. As this is called after the subclass is constructed, we're guaranteed
      * to have properly initialized the subclass.
+     * “真正的”初始化; 我们不能把它放在构造函数中，因为在futures已经完成的情况下，
+     * 我们不会在调用{@link #handleOneInputDone}之前初始化子类。 因为在构造子类之后调用此方法，
+     * 所以我们保证在调用此方法之前已经正确初始化子类了。
      */
     private void init() {
       // Corner case: List is empty.
@@ -125,17 +130,23 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
 
       // NOTE: If we ever want to use a custom executor here, have a look at CombinedFuture as we'll
       // need to handle RejectedExecutionException
+      // 注意：如果我们想在这里使用自定义executor，请查看CombinedFuture，因为我们需要处理RejectedExecutionException
 
       if (allMustSucceed) {
         // We need fail fast, so we have to keep track of which future failed so we can propagate
         // the exception immediately
+        // 我们需要快速失败，因此我们必须跟踪哪个future失败，以便我们可以立即传播异常
 
         // Register a listener on each Future in the list to update the state of this future.
+        // 在列表中的每个Future上注册一个侦听器，以更新此future的状态。
         // Note that if all the futures on the list are done prior to completing this loop, the last
         // call to addListener() will callback to setOneValue(), transitively call our cleanup
         // listener, and set this.futures to null.
+        // 请注意，如果列表中的所有future都在完成此循环之前完成，则对addListener()的最后一次调用将回调到setOneValue()，
+        // 传递调用我们的清理侦听器，并将this.futures设置为null。
         // This is not actually a problem, since the foreach only needs this.futures to be non-null
         // at the beginning of the loop.
+        // 这实际上不是一个问题，因为foreach只需要this.futures在循环开始时为非null。
         int i = 0;
         for (final ListenableFuture<? extends InputT> listenable : futures) {
           final int index = i++;
