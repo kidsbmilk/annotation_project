@@ -195,11 +195,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @SuppressWarnings("serial") // we're overriding default serialization
 // TODO(kevinb): I think we should push everything down to "BaseImmutableCollection" or something,
 // just to do everything we can to emphasize the "practically an interface" nature of this class.
-public abstract class ImmutableCollection<E> extends AbstractCollection<E> implements Serializable {
+// 我认为我们应该将所有内容都推到“BaseImmutableCollection”或其他东西，只是为了尽我们所能来强调这个类的“实际上是一个接口”的本质。
+public abstract class ImmutableCollection<E> extends AbstractCollection<E> implements Serializable { // 见AbstractCollection类的注释说明，
+  // 想实现一个继承自AbstractCollection集合类是非常容易的。
   /*
    * We expect SIZED (and SUBSIZED, if applicable) to be added by the spliterator factory methods.
    * These are properties of the collection as a whole; SIZED and SUBSIZED are more properties of
    * the spliterator implementation.
+   * 我们期望通过spliterator工厂方法添加SIZED（和SUBSIZED，如果适用）。
+   * 这些是整个集合的属性; SIZED和SUBSIZED是spliterator实现所需额外的属性。
    */
   static final int SPLITERATOR_CHARACTERISTICS =
       Spliterator.IMMUTABLE | Spliterator.NONNULL | Spliterator.ORDERED;
@@ -210,6 +214,7 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
   @Override
   public abstract UnmodifiableIterator<E> iterator();
 
+  // 这个Spliterator的说明，见我的skill_arena/spliterator_ex中的例子说明。
   @Override
   public Spliterator<E> spliterator() {
     return Spliterators.spliterator(this, SPLITERATOR_CHARACTERISTICS);
@@ -337,10 +342,13 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
   /**
    * Returns an {@code ImmutableList} containing the same elements, in the same order, as this
    * collection.
+   * 以与此集合相同的顺序返回包含相同元素的{@code ImmutableList}。
    *
    * <p><b>Performance note:</b> in most cases this method can return quickly without actually
    * copying anything. The exact circumstances under which the copy is performed are undefined and
    * subject to change.
+   * <p> <b>性能说明：</ b>在大多数情况下，此方法可以快速返回，而无需实际复制任何内容。
+   * 执行副本的确切情况未定义且可能会发生变化。
    *
    * @since 2.0
    */
@@ -360,6 +368,8 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
    * user-created objects that aren't accessible via this collection's methods. This is generally
    * used to determine whether {@code copyOf} implementations should make an explicit copy to avoid
    * memory leaks.
+   * 如果此不可变集合的实现包含对无法通过此集合的方法访问的用户创建对象的引用，则返回{@code true}。
+   * 这通常用于确定{@code copyOf}实现是否应该进行显式复制以避免内存泄漏。
    */
   abstract boolean isPartialView();
 
@@ -377,6 +387,7 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
 
   Object writeReplace() {
     // We serialize by default to ImmutableList, the simplest thing that works.
+      // 我们默认序列化为ImmutableList，这是最简单的方法。
     return new ImmutableList.SerializedForm(toArray());
   }
 
