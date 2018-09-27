@@ -152,7 +152,7 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
         int i = 0;
         for (final ListenableFuture<? extends InputT> listenable : futures) {
           final int index = i++; // 注意这个：匿名内部类需要传递一个表示下标的值，此值需要为final的，但是此值又需要变化，所以这里就先用一个可变量的量去初始化创建一个final的量。
-          listenable.addListener(
+          listenable.addListener( // 注意：这个是加入listener后立即就返回了，这个init也就结束了。
               new Runnable() {
                 @Override
                 public void run() {
@@ -231,7 +231,15 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
         // 此Future应该已经完成的仅有的情况是（a）如果它被取消或（b）如果某个输入失败并且由于设置了allMustSucceed导致我们立即传播它。
         // 此future是指这个this这个AggregateFuture实例。
 
-        // 下面这个checkState的三个判断条件没看明白 ?zz? TODO.
+        // 下面这个checkState的三个判断条件没看明白 ?
+        // 终于想明白了：将判断表达式allMustSucceed || !isDone() || isCancelled()记为A，
+        // 如果isCancelled()为true，则isDone必定为true，则下面的判断必定为true，
+        // 下面的判断只有一种情况下会使A为false、抛出异常：isCancelled()为false且isDone为true且allMustSucceed为false，
+        // 表示的是：如果不要求所有的输入future都成功（allMustSucceed为false），此时的init里会走“listenable.addListener(this, directExecutor());”的分支，
+        // 而走这个分支时，因为不会快速失败（allMustSucceed为false）而且又不是主动取消的(isCancelled()为false)，但是isDone却是完成的，
+        // 这本身就是有问题的，所以要抛出异常。
+        // 当isCancelled()为false且allMustSucceed为false时，只有isDone为false才是正常的情况，这种情况下调用handleOneInputDone的代码的流程：
+        // “listenable.addListener(this, directExecutor());”的分支  -->   decrementCountAndMaybeComplete()  -->   processCompleted  -->  handleOneInputDone
       checkState(
           allMustSucceed || !isDone() || isCancelled(),
           "Future was done before all dependencies completed");
@@ -243,6 +251,7 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
             // clear running state prior to cancelling children, this sets our own state but lets
             // the input futures keep running as some of them may be used elsewhere.
               // 在取消孩子之前清除运行状态，这设置了我们自己的状态，但让输入的futures继续运行，因为其中一些可能在其他地方使用。
+              // 这个children指this这个AggregateFuture。
             runningState = null;
             cancel(false);
           } else {
