@@ -231,11 +231,7 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
         // 此Future应该已经完成的仅有的情况是（a）如果它被取消或（b）如果某个输入失败并且由于设置了allMustSucceed导致我们立即传播它。
         // 此future是指这个this这个AggregateFuture实例。
 
-        // 关于下面这个checkState，如果allMustSucceed || !isDone() || isCancelled()结果为true，则不抛出异常，
-        // 如果其为true时，则allMustSucceed为true或者isDone为false或者isCancelled()为true，
-        // 仔细分析可以发现，isCancelled()为true时，isDone必定为true，
-        // 而isCancelled()为false时，isDone可能为true，也可能为false。
-        // 所以，只所以需要allMustSucceed为true，是因为存在isDone为true且isCancelled为false的情况
+        // 下面这个checkState的三个判断条件没看明白 ?zz? TODO.
       checkState(
           allMustSucceed || !isDone() || isCancelled(),
           "Future was done before all dependencies completed");
