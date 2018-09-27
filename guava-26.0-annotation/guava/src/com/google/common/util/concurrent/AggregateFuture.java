@@ -91,6 +91,18 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
     runningState.init();
   }
 
+  /**
+   * 说一下为什么这个类叫state，其实就是管理一下聚合future中多个future的状态信息，
+   * AggregateFutureState是最基础的类，当然里面也包含最基本的必不可少的多个future的状态信息，
+   * 比如future是否出现异常以及多少个已完成。
+   * 而这个RunnState扩展了AggregateFutureState，增加了多个future的原始信息，以及是否必须全部完成、是否收集结果等等。
+   * 再接下来的一些更具体的类，比如CollectionFutureRunningState，继承自RunningState，增加了成员变量values，
+   * 用于保存收集的多个future的结果，同时实现了collectOneValue方法，用于将结果写入到values中，也实现了handleAllCompleted方法，
+   * 并引出了一个新的抽象方法combine，用于转换vlaues为最终聚合future的结果，这个要见ListFutureRunningState类，
+   * 它继承了CollectionFutureRunningState，实现了combine方法，将vlaue转为不要变的列表，设置为最终的聚合future的结果。
+   *
+   * 这一套继承下来，非常漂亮。
+   */
   abstract class RunningState extends AggregateFutureState implements Runnable {
     private ImmutableCollection<? extends ListenableFuture<? extends InputT>> futures;
     private final boolean allMustSucceed;

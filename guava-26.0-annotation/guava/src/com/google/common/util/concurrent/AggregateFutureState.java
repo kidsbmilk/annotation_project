@@ -37,6 +37,8 @@ import java.util.logging.Logger;
  *   <li>Decrements a counter atomically
  *       原子地减少计数器
  * </ul>
+ *
+ * 见RunningState类前的注释。
  */
 @GwtCompatible(emulated = true)
 @ReflectionSupport(value = ReflectionSupport.Level.FULL)
