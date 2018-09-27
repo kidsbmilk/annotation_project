@@ -252,6 +252,8 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
         // 这本身就是有问题的，所以要抛出异常。
         // 当isCancelled()为false且allMustSucceed为false时，只有isDone为false才是正常的情况，这种情况下调用handleOneInputDone的代码的流程：
         // “listenable.addListener(this, directExecutor());”的分支  -->   decrementCountAndMaybeComplete()  -->   processCompleted  -->  handleOneInputDone
+
+        // 其实仔细想想，上面的英文注释说的跟我上面的解释是一样的，只是过作者的注释写的不够具体详细。
       checkState(
           allMustSucceed || !isDone() || isCancelled(),
           "Future was done before all dependencies completed");
