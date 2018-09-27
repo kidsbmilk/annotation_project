@@ -229,6 +229,7 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
       // The only cases in which this Future should already be done are (a) if it was cancelled or
       // (b) if an input failed and we propagated that immediately because of allMustSucceed.
         // 此Future应该已经完成的仅有的情况是（a）如果它被取消或（b）如果某个输入失败并且由于设置了allMustSucceed导致我们立即传播它。
+        // 此future是指这个this这个AggregateFuture实例。
       checkState(
           allMustSucceed || !isDone() || isCancelled(),
           "Future was done before all dependencies completed");
