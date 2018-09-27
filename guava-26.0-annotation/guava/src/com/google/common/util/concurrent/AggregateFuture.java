@@ -106,7 +106,9 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
       this.collectsValues = collectsValues;
     }
 
-    /* Used in the !allMustSucceed case so we don't have to instantiate a listener. */
+    /* Used in the !allMustSucceed case so we don't have to instantiate a listener.
+     * 在!allMustSucceed案例中使用，因此我们不必实例化一个监听器。
+     */
     @Override
     public final void run() {
       decrementCountAndMaybeComplete();
@@ -149,7 +151,7 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
         // 这实际上不是一个问题，因为foreach只需要this.futures在循环开始时为非null。
         int i = 0;
         for (final ListenableFuture<? extends InputT> listenable : futures) {
-          final int index = i++;
+          final int index = i++; // 注意这个：匿名内部类需要传递一个表示下标的值，此值需要为final的，但是此值又需要变化，所以这里就先用一个可变量的量去初始化创建一个final的量。
           listenable.addListener(
               new Runnable() {
                 @Override
