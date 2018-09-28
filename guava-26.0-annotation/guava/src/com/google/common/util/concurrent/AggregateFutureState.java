@@ -134,7 +134,7 @@ abstract class AggregateFutureState {
   }
 
   /** Populates {@code seen} with the exception that was passed to {@code setException}. */
-  abstract void addInitialException(Set<Throwable> seen);
+  abstract void addInitialException(Set<Throwable> seen); // 见getOrInitSeenExceptions里对此方法的说明。
 
   final int decrementRemainingAndGet() {
     return ATOMIC_HELPER.decrementAndGetRemainingCount(this);

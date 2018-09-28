@@ -206,7 +206,8 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
         // As soon as the first one fails, throw the exception up.
         // The result of all other inputs is then ignored.
           // 一旦第一个失败，抛出异常。 然后忽略所有其他输入的结果。
-        completedWithFailure = setException(throwable);
+        completedWithFailure = setException(throwable); // 这里失败的原因是，有其他future已经设置其失败了，
+        // 所以false时要调用下面的addCausalChain看此失败原因是否第一次出现，然后记录一下。
         if (completedWithFailure) {
           releaseResourcesAfterFailure();
         } else {
