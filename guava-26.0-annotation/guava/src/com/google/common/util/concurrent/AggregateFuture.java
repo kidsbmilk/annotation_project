@@ -215,6 +215,7 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
           // it's wrapped by a different exception, don't log it.
             // 走上因果链，看看我们是否已经看到了这个原因; 如果我们有，即使它被一个不同的异常包装，也不要记录它。
           firstTimeSeeingThisException = addCausalChain(getOrInitSeenExceptions(), throwable);
+          // 这个与下面的打印信息的分析及例子，见wheels/concurrent工程里的FuturesAllAsListEx_1、FuturesAllAsListEx_2以及FuturesAllAsListEx_3.
         }
       }
 
@@ -344,7 +345,8 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
   /** Adds the chain to the seen set, and returns whether all the chain was new to us. */
   private static boolean addCausalChain(Set<Throwable> seen, Throwable t) {
     for (; t != null; t = t.getCause()) {
-      boolean firstTimeSeen = seen.add(t);
+      boolean firstTimeSeen = seen.add(t); // 对seenExceptions的写入与读取不会有并发问题，因为它是volatile类型的。
+        // 注意：这个是加入是否已存在时，判断的是两个对象是否相等，并不是类型或者异常信息相同。
       if (!firstTimeSeen) {
         /*
          * We've seen this, so we've seen its causes, too. No need to re-add them. (There's one case
@@ -354,6 +356,10 @@ abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFu
          * 我们已经看到了这一点，所以我们也看到了它的原因。 无需重新添加它们。
          * （有一种情况不是这样，但我们忽略它：如果我们记录一个异常，那么有人在其上调用initCause（），然后我们再次检查它，
          * 我们将得出结论，我们已经看到了整个链，但是事实上我们没有。但这应该是罕见的。）
+         *
+         * 这个问题说的是：如果是相同的异常，原因是相同的，不需要重复添加这个异常，但是会有一种情况是，我们已经记录了此异常，但是随后有人调用了异常的initCause方法，
+         * 这样会导致seenException里的此异常目前的原因是空的，但是其实我们之前已经看到它了。
+         * 这不是并发问题，而是逻辑问题，这种情况在一般正常逻辑下不会出现。
          */
         return false;
       }

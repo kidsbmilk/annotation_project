@@ -47,6 +47,10 @@ abstract class AggregateFutureState {
   // & this future completes. Released when the future releases the reference to the running state
   // 延迟初始化，直到我们第一次看到异常时才初始化它们; 直到所有输入future和这个future完成后才会释放它们。
   // 在future释放对运行状态的引用时才会释放此对象。
+  // 这个延迟初始化的具体地点在于：RunningState.handleException里的这行代码：
+  // firstTimeSeeingThisException = addCausalChain(getOrInitSeenExceptions(), throwable);
+    // 其实我感觉不用延迟初始化也可以。
+    // 对seenExceptions的写入与读取不会有并发问题，因为它是volatile类型的。
   private volatile Set<Throwable> seenExceptions = null;
 
   private volatile int remaining;
@@ -107,6 +111,17 @@ abstract class AggregateFutureState {
      * always contains not just the current thread's exception but also the initial thread's.
      * 我们的解决方案是针对CAS操作seenExceptions的线程，将seenExceptions从null设置为初始异常，无论哪个线程都起作用。
      * 这可以确保seenExceptions不仅包含当前线程的异常，还包含初始线程的异常。
+     *
+     * 上面的翻译不太准确，具体分析如下：
+     * 下面说的复杂、会出现并发问题的情景是这样的：如果setException后直接去设置这个seenException，则会出现上面的并发问题。
+     * 这里的解决方案是：对于setException，不论哪个线程执行完，后续的对于seenException的设置都是设置的聚合future的异常值，见RunningState.addInitialException里的实现，这样，在下面的cas来设置seenException时就不会有上面的问题了。
+     * 然后，设置完成seenException后，还可以继承使用自己输入future的异常来更新seenException，见RunningState.handleException里的这行代码的第二个参数：
+     * firstTimeSeeingThisException = addCausalChain(getOrInitSeenExceptions(), throwable);
+     *
+     * 其实，上面之所以会出现并发问题，根本原因在于setException和ATOMIC_HELPER.compareAndSetSeenExceptions(this, null, seenExceptionsLocal)这两个原子操作一块执行时，不具备原子性，
+     * 有点像volatile的读取和写入具有原子性，但是自增自减操作不具备原子性一样。
+     *
+     * 对seenExceptions的写入与读取不会有并发问题，因为它是volatile类型的。
      */
     Set<Throwable> seenExceptionsLocal = seenExceptions;
     if (seenExceptionsLocal == null) {
