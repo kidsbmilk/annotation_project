@@ -1147,13 +1147,23 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    * given checked exception type. This reduces boilerplate for a common use of {@code Future} in
    * which it is unnecessary to programmatically distinguish between exception types or to extract
    * other information from the exception instance.
+   * 返回{@link Future＃get（）}的结果，将大多数异常转换为给定已检查异常类型的新实例。
+   * 这减少了用于{@code Future}的常见用法的样板，其中不必以编程方式区分异常类型或从异常实例中提取其他信息。
    *
    * <p>Exceptions from {@code Future.get} are treated as follows:
+   * 来自{@code Future.get}的异常将按以下情况如下：
    *
    * <ul>
    *   <li>Any {@link ExecutionException} has its <i>cause</i> wrapped in an {@code X} if the cause
    *       is a checked exception, an {@link UncheckedExecutionException} if the cause is a {@code
    *       RuntimeException}, or an {@link ExecutionError} if the cause is an {@code Error}.
+   *       对于任何{@link ExecutionException}的<i>原因</ i>，如果原因是已检查的异常，则将其包装在{@code X}中；
+   *       如果原因是{@code RuntimeException}，则将其包装在{@link UncheckedExecutionException}中；
+   *       或者如果原因是{@code Error} ，则将其包装在{@link ExecutionError}中。
+   *
+   *       只所以是ExecutionException，见AbstractFuture.getDoneValue，Failure里的exception是Throwable类型的，
+   *       所有异常或者错误类都是Throwable类的子类。
+   *
    *   <li>Any {@link InterruptedException} is wrapped in an {@code X} (after restoring the
    *       interrupt).
    *   <li>Any {@link CancellationException} is propagated untouched, as is any other {@link
