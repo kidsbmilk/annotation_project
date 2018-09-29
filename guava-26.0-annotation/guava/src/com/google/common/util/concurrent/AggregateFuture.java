@@ -36,6 +36,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @param <InputT> the type of the individual inputs
  * @param <OutputT> the type of the output (i.e. this) future
  */
+
+/**
+ * 关于聚合future实现部分的思考：
+ * 只要是与Future有关的，就逃不出AbstractFuture的抽象方法，比如afterDone，以及ListenableFuture里的接口方法addListener。
+ * 关于多个输入future的状态管理，也是通过对多个输入future设置监听器来实现的，详情见RunningState.init里实现。
+ */
 @GwtCompatible
 abstract class AggregateFuture<InputT, OutputT> extends AbstractFuture.TrustedFuture<OutputT> {
   private static final Logger logger = Logger.getLogger(AggregateFuture.class.getName());
