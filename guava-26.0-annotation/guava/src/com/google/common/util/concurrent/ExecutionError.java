@@ -47,5 +47,5 @@ public class ExecutionError extends Error {
     super(cause);
   }
 
-  private static final long serialVersionUID = 0;
+  private static final long serialVersionUID = 0; // serialVersionUID 有什么作用？该如何使用？：https://github.com/giantray/stackoverflow-java-top-qa/blob/master/contents/what-is-a-serialversionuid-and-why-should-i-use-it.md
 }
