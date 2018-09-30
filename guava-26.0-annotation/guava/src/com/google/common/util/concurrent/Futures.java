@@ -1166,15 +1166,21 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    *
    *   <li>Any {@link InterruptedException} is wrapped in an {@code X} (after restoring the
    *       interrupt).
+   *       任何{@link InterruptedException}都包含在{@code X}中（恢复中断后）。
    *   <li>Any {@link CancellationException} is propagated untouched, as is any other {@link
    *       RuntimeException} (though {@code get} implementations are discouraged from throwing such
    *       exceptions).
+   *       任何{@link CancellationException}都不会被传播，就像任何其他{@link RuntimeException}一样（尽管不鼓励{@code get}实现抛出此类异常）。
+   *
+   *       注意：CancellationException是jdk里定义的，而AbstractFuture.Cancellation则是guava中自定义的，内部包含了是否出现中断的信息。
    * </ul>
    *
    * <p>The overall principle is to continue to treat every checked exception as a checked
    * exception, every unchecked exception as an unchecked exception, and every error as an error. In
    * addition, the cause of any {@code ExecutionException} is wrapped in order to ensure that the
    * new stack trace matches that of the current thread.
+   * 总体原则是继续将每个已检查的异常视为已检查的异常，将每个未经检查的异常视为未经检查的异常，并将每个错误视为错误。
+   * 此外，包装任何{@code ExecutionException}的原因是为了确保新的堆栈跟踪与当前线程的跟踪匹配。
    *
    * <p>Instances of {@code exceptionClass} are created by choosing an arbitrary public constructor
    * that accepts zero or more arguments, all of type {@code String} or {@code Throwable}
@@ -1182,6 +1188,10 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    * reflection. If the exception did not already have a cause, one is set by calling {@link
    * Throwable#initCause(Throwable)} on it. If no such constructor exists, an {@code
    * IllegalArgumentException} is thrown.
+   * {@code exceptionClass}的实例是通过选择接受零个或多个参数的任意公共构造函数创建的，
+   * 所有类型都是{@code String}或{@code Throwable}（更喜欢具有至少一个{@code String}的构造函数）和 通过反射调用构造函数。
+   * 如果异常还没有原因，可以通过调用{@link Throwable #initCause（Throwable）}来设置异常。
+   * 如果不存在这样的构造函数，则抛出{@code IllegalArgumentException}。
    *
    * @throws X if {@code get} throws any checked exception except for an {@code ExecutionException}
    *     whose cause is not itself a checked exception
