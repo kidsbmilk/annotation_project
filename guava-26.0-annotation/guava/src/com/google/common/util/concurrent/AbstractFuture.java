@@ -602,6 +602,8 @@ public abstract class AbstractFuture<V> extends FluentFuture<V> {
    * AbstractFuture的默认实现中如果当前线程被中断了则抛出InterruptedException，即使当前已经得到value了，也会抛出InterruptedException。
    *
    * @throws CancellationException {@inheritDoc}
+   *
+   * 这里抛出异常的情况的说明见Futures.getUnchecked里的说明。
    */
   @CanIgnoreReturnValue
   @Override

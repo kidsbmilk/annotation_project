@@ -184,6 +184,8 @@ public final class Uninterruptibles {
    *       Futures#getUnchecked}.
    * </ul>
    *
+   * 注意上面的注释！！！
+   *
    * @throws ExecutionException if the computation threw an exception
    * @throws CancellationException if the computation was cancelled
    */

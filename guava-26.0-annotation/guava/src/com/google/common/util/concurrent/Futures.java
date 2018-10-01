@@ -1266,27 +1266,42 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    * a checked exception. This makes {@code Future} more suitable for lightweight, fast-running
    * tasks that, barring bugs in the code, will not fail. This gives it exception-handling behavior
    * similar to that of {@code ForkJoinTask.join}.
+   * 返回在已知不会抛出已检查异常的任务上不可中断地调用{@link Future＃get（）}的结果。 这使得{@code Future}更适合轻量级，
+   * 快速运行的任务，除了代码中的错误之外，这些任务不会失败。 这使它具有类似于{@code ForkJoinTask.join}的异常处理行为。
+   *
+   * {@code ForkJoinTask.join}的异常处理如下：
+   * 在{@code #ForkJoinTask.isDone完成}时返回计算结果。
+   * 此方法与{@code #ForkJoinTask.get}的不同之处在于异常完成导致{@code RuntimeException}或{@code Error}，而不是{@code ExecutionException}，
+   * 并且调用线程的中断<em>不< / em>通过抛出{@code InterruptedException}导致方法突然返回。
    *
    * <p>Exceptions from {@code Future.get} are treated as follows:
+   * 来自{@code Future.get}的异常将按以下方式处理：
    *
    * <ul>
    *   <li>Any {@link ExecutionException} has its <i>cause</i> wrapped in an {@link
    *       UncheckedExecutionException} (if the cause is an {@code Exception}) or {@link
    *       ExecutionError} (if the cause is an {@code Error}).
+   *       任何{@link ExecutionException}的<i>原因</ i>都包装在{@link UncheckedExecutionException}中（如果原因是{@code Exception}）
+   *       或{@link ExecutionError}（如果原因是{@code Error}）。
    *   <li>Any {@link InterruptedException} causes a retry of the {@code get} call. The interrupt is
    *       restored before {@code getUnchecked} returns.
+   *       任何{@link InterruptedException}都会导致重试{@code get}。 在{@code getUnchecked}返回之前恢复中断。
    *   <li>Any {@link CancellationException} is propagated untouched. So is any other {@link
    *       RuntimeException} ({@code get} implementations are discouraged from throwing such
    *       exceptions).
+   *       任何{@link CancellationException}都不会被传播。 所以其他任何{@link RuntimeException}（{@code get}实现都不会抛出这些异常）。
    * </ul>
    *
    * <p>The overall principle is to eliminate all checked exceptions: to loop to avoid {@code
    * InterruptedException}, to pass through {@code CancellationException}, and to wrap any exception
    * from the underlying computation in an {@code UncheckedExecutionException} or {@code
    * ExecutionError}.
+   * 总体原则是消除所有已检查的异常：循环以避免{@code InterruptedException}，传递{@code CancellationException}，
+   * 并在{@code UncheckedExecutionException}或{@code ExecutionError中包装基础计算中的任何异常}。
    *
    * <p>For an uninterruptible {@code get} that preserves other exceptions, see {@link
    * Uninterruptibles#getUninterruptibly(Future)}.
+   * 对于保留其他异常的不间断{@code get}，请参阅{@link Uninterruptibles＃getUninterruptibly（Future）}。
    *
    * @throws UncheckedExecutionException if {@code get} throws an {@code ExecutionException} with an
    *     {@code Exception} as its cause
@@ -1294,15 +1309,23 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
    *     Error} as its cause
    * @throws CancellationException if {@code get} throws a {@code CancellationException}
    * @since 10.0
+   *
+   * 这里面分了三类：UncheckedExecutionException、ExecutionError、CancellationException，
+   * 这三个都是非受检异常，在AbstractFuture里将受检异常与部分非受检异常（不包括CancellationException）
+   * 都封装在ExecutionException里了。
+   * 所以，这里会将ExecutionException（这里的不包含受检异常了）再还原为前两个，面第三个非受检异常是由get抛出的。
+   *
+   * 见最上面的方法注释说明：在已知不会返回受检异常的。。。
+   * 如果真的在受检异常的上面使用此方法，异常会被封装在UncheckedExecutionException中抛出。
    */
   @CanIgnoreReturnValue
   public static <V> V getUnchecked(Future<V> future) {
     checkNotNull(future);
     try {
-      return getUninterruptibly(future);
+      return getUninterruptibly(future); // 注意这个方法的注释！！！
     } catch (ExecutionException e) {
       wrapAndThrowUnchecked(e.getCause());
-      throw new AssertionError();
+      throw new AssertionError(); // 这个的作用跟FuturesGetChecked.getChecked里的作用一样。
     }
   }
 
@@ -1314,6 +1337,8 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
      * It's an Exception. (Or it's a non-Error, non-Exception Throwable. From my survey of such
      * classes, I believe that most users intended to extend Exception, so we'll treat it like an
      * Exception.)
+     * 这是一个异常。 （或者它是一个非错误，非异常Throwable。
+     * 从我对这些类的调查中，我相信大多数用户都打算扩展Exception，所以我们将它视为异常。）
      */
     throw new UncheckedExecutionException(cause);
   }
