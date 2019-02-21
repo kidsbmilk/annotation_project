@@ -1,1 +1,1 @@
-Learning Java through analyzing open source framework
+Learning Java by analyzing open source framework
